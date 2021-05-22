@@ -20,7 +20,7 @@ namespace OpcUaWebDashboard
             EventProcessorHost eventProcessorHost;
 
             // Get configuration settings
-            string iotHubTelemetryConsumerGroup = "$Default";
+            string iotHubTelemetryConsumerGroup = "dashboard";
             string iotHubEventHubName = Environment.GetEnvironmentVariable("IotHubEventHubName");
             string iotHubEventHubEndpointIotHubOwnerConnectionString = Environment.GetEnvironmentVariable("EventHubEndpointIotHubOwnerConnectionString");
             string solutionStorageAccountConnectionString = Environment.GetEnvironmentVariable("StorageAccountConnectionString");

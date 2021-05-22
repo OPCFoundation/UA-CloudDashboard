@@ -1,6 +1,7 @@
 ﻿using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
 using Newtonsoft.Json;
+using Opc.Ua;
 using OpcUaWebDashboard.Controllers;
 using System;
 using System.Collections.Generic;
@@ -10,24 +11,33 @@ using System.Threading.Tasks;
 
 namespace OpcUaWebDashboard
 {
-    public class MonitoredItemDataValue
+    public class OpcUaPubSubJsonMessage
     {
-        public string Value { get; set; }
+        public string MessageId { get; set; }
 
-        public string SourceTimestamp { get; set; }
+        public string MessageType { get; set; }
+
+        public string PublisherId { get; set; }
+
+        public string DataSetClassId { get; set; }
+
+        public List<Message> Messages { get; set; }
     }
 
-    public class PublisherMessage
+    public class Message
     {
-        [JsonProperty("ApplicationUri")]
-        public string OpcUri { get; set; }
+        public string DataSetWriterId { get; set; }
 
-        [JsonProperty("DisplayName")]
-        public string SymbolicName { get; set; }
+        public MetaDataVersion MetaDataVersion { get; set; }
 
-        public string NodeId { get; set; }
+        public Dictionary<string, DataValue> Payload { get; set; }
+    }
 
-        public MonitoredItemDataValue Value { get; set; }
+    public class MetaDataVersion
+    {
+        public int MajorVersion { get; set; }
+
+        public int MinorVersion { get; set; }
     }
 
     /// <summary>
@@ -71,19 +81,24 @@ namespace OpcUaWebDashboard
             }
         }
 
-        private bool ProcessPublisherMessage(string opcUri, string nodeId, string sourceTimestamp, string value)
+        private void ProcessPublisherMessage(OpcUaPubSubJsonMessage publisherMessage)
         {
-            // Get the OPC UA node object.
-            ContosoOpcUaNode opcUaNode = ContosoTopology.Topology.GetOpcUaNode(opcUri.ToLower(), nodeId);
-            if (opcUaNode == null)
+            foreach (Message message in publisherMessage.Messages)
             {
-                return false;
-            }
+                foreach (string nodeId in message.Payload.Keys)
+                {
+                    // get the OPC UA node object
+                    ContosoOpcUaNode opcUaNode = ContosoTopology.Topology.GetOpcUaNode(message.DataSetWriterId, nodeId);
+                    if (opcUaNode == null)
+                    {
+                        continue;
+                    }
 
-            // Update last value.
-            opcUaNode.LastValue = value;
-            opcUaNode.LastValueTimestamp = DateTime.UtcNow.ToString();
-            return true;
+                    // Update last value.
+                    opcUaNode.LastValue = message.Payload[nodeId].Value.ToString();
+                    opcUaNode.LastValueTimestamp = DateTime.UtcNow.ToString();
+                }
+            }
         }
 
         private void Checkpoint(PartitionContext context, Stopwatch checkpointStopwatch)
@@ -119,18 +134,15 @@ namespace OpcUaWebDashboard
                         // support batched messages as well as simple message ingests
                         if (message.StartsWith("["))
                         {
-                            List<PublisherMessage> publisherMessages = JsonConvert.DeserializeObject<List<PublisherMessage>>(message);
-                            foreach (var publisherMessage in publisherMessages)
+                            List<OpcUaPubSubJsonMessage> publisherMessages = JsonConvert.DeserializeObject<List<OpcUaPubSubJsonMessage>>(message);
+                            foreach (OpcUaPubSubJsonMessage publisherMessage in publisherMessages)
                             {
                                 if (publisherMessage != null)
                                 {
                                     _publisherMessages++;
                                     try
                                     {
-                                        ProcessPublisherMessage(publisherMessage.OpcUri, publisherMessage.NodeId, publisherMessage.Value.SourceTimestamp, publisherMessage.Value.Value);
-                                        _lastSourceTimestamp = publisherMessage.Value.SourceTimestamp;
-                                        _lastOpcUri = publisherMessage.OpcUri;
-                                        _lastNodeId = publisherMessage.NodeId;
+                                        ProcessPublisherMessage(publisherMessage);
                                     }
                                     catch (Exception e)
                                     {
@@ -141,14 +153,11 @@ namespace OpcUaWebDashboard
                         }
                         else
                         {
-                            PublisherMessage publisherMessage = JsonConvert.DeserializeObject<PublisherMessage>(message);
+                            OpcUaPubSubJsonMessage publisherMessage = JsonConvert.DeserializeObject<OpcUaPubSubJsonMessage>(message);
                             _publisherMessagesInvalidFormat++;
                             if (publisherMessage != null)
                             {
-                                ProcessPublisherMessage(publisherMessage.OpcUri, publisherMessage.NodeId, publisherMessage.Value.SourceTimestamp, publisherMessage.Value.Value);
-                                _lastSourceTimestamp = publisherMessage.Value.SourceTimestamp;
-                                _lastOpcUri = publisherMessage.OpcUri;
-                                _lastNodeId = publisherMessage.NodeId;
+                                ProcessPublisherMessage(publisherMessage);
                             }
                         }
 
@@ -159,8 +168,7 @@ namespace OpcUaWebDashboard
                             {
                                 try
                                 {
-                                    Trace.TraceInformation($"processorHostMessages {_processorHostMessages}, publisherMessages {_publisherMessages}/{_publisherMessagesInvalidFormat}, sourceTimestamp: '{_lastSourceTimestamp}'");
-                                    Trace.TraceInformation($"opcUri '{_lastOpcUri}', nodeid '{_lastNodeId}'");
+                                    Trace.TraceInformation($"processorHostMessages {_processorHostMessages}, publisherMessages {_publisherMessages}/{_publisherMessagesInvalidFormat}");
                                 }
                                 catch (Exception e)
                                 {
@@ -187,9 +195,6 @@ namespace OpcUaWebDashboard
         private int _processorHostMessages;
         private int _publisherMessages;
         private int _publisherMessagesInvalidFormat;
-        private string _lastSourceTimestamp;
-        private string _lastOpcUri;
-        private string _lastNodeId;
     }
 }
 

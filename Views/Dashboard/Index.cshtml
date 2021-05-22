@@ -12,7 +12,6 @@
 @section scripts {
     <script src="~/Scripts/d3.js" charset="utf-8"></script>
     <script src="~/Scripts/c3.js"></script>
-    <script src="/signalr/hubs"></script>
     <script>'use strict';</script>
 }
 
@@ -188,6 +187,37 @@
     const blue = "#7065FD";
     const yellow = "#FFEE91";
     var title = "@Resources.TitleDashboard";
+
+    $(async function () {
+        //connection to SignalR hub
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/statusHub")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        // Create a function that the hub can call back to display messages
+        connection.on("addNewMessageToPage", (session, message) => {
+            $('#message').text(message);
+        });
+
+        // Start/continue the connection
+        async function establishSignalRConnection() {
+            try {
+                await connection.start();
+                console.log("connection to signalr hub successfull established");
+            } catch (err) {
+                console.warn("Error creating SignalR connection, retry in 5 seconds %o", err);
+                setTimeout(async () => { await establishSignalRConnection() }, 5000);
+            }
+        };
+
+        connection.onclose(async () => {
+            await establishSignalRConnection();
+        });
+
+        // Start the connection.
+        await establishSignalRConnection();
+    });
 
     function changeHeight() {
         var heightMap = $(".dashboard_map_container").height();

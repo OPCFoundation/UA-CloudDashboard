@@ -83,6 +83,20 @@ namespace OpcUaWebDashboard.Controllers
             Init();
         }
 
+        /// <summary>
+        /// Sends the message to all connected clients as status indication
+        /// </summary>
+        /// <param name="message">Text to show on web page</param>
+        private void UpdateStatus(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                throw new ArgumentException(nameof(message));
+            }
+
+            _hubContext.Clients.All.SendAsync("addNewMessageToPage", HttpContext?.Session.Id, message).Wait();
+        }
+
         public ActionResult Privacy()
         {
             return View("Privacy");
