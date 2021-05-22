@@ -1,0 +1,76 @@
+﻿@using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Models
+@using Newtonsoft.Json
+
+@model DashboardModel
+
+@{
+    var json = JsonConvert.SerializeObject(Model.Children);
+}
+
+<!-- Reference to the Bing Maps SDK -->
+<script type='text/javascript' src='//www.bing.com/api/maps/mapcontrol?callback=GetMap' async defer></script>
+
+<script type='text/javascript'>
+    function GetMap()
+    {
+        // get the model
+        var children = @Html.Raw(json);
+
+        for (index = 0; index < children.length; index++)
+        {
+            if (children[index].Latitude != 0 && children[index].Longitude != 0) {
+                var pushPinFile = "/Content/img/info.svg";
+                var city = children[index].City;
+
+                var location = new Microsoft.Maps.Location(children[index].Latitude, children[index].Longitude);
+                factoryMapPushpin[index] = new Microsoft.Maps.Pushpin(location,
+                                {
+                                    anchor: new Microsoft.Maps.Point(8, 8),
+                                    icon: pushPinFile,
+                                    draggalbe: false,
+                                    title: (children[index].Name)
+                                });
+                Microsoft.Maps.Events.addHandler(factoryMapPushpin[index], 'click',
+                    function () {
+                        for (index = 0; index < children.length; index++) {
+                            if (arguments[0].target._options.title == children[index].Name)
+                            {
+                                var dashboardUrl = "Index?TopNode=" + children[index].Key;
+                                window.location.assign(dashboardUrl);
+                                break;
+                            }
+                        }
+                    });
+                factoryMap.entities.push(factoryMapPushpin[index]);
+            }
+        }
+
+        getZoomRange = function () {
+            return {
+                max: 24,
+                min: 2
+            };
+        };
+        // Forcibly set the zoom to our min/max whenever the view starts to change beyond them
+        var restrictZoom = function () {
+            if (factoryMap.getZoom() <= getZoomRange().min)
+            {
+                factoryMap.setView({
+                    zoom: getZoomRange().min,
+                    animate: false
+                });
+            }
+            else if (factoryMap.getZoom() >= getZoomRange().max)
+            {
+                factoryMap.setView({
+                    zoom: getZoomRange().max,
+                    animate: false
+                });
+            }
+        };
+        // Attach a handler to the event that gets fired whenever the map's view is about to change
+        window.Microsoft.Maps.Events.addHandler(factoryMap, 'viewchangeend', restrictZoom);
+
+    }
+</script>
+
