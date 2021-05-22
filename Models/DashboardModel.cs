@@ -1,5 +1,4 @@
 ﻿using Opc.Ua;
-using System;
 using System.Collections.Generic;
 
 namespace OpcUaWebDashboard.Models
@@ -7,8 +6,6 @@ namespace OpcUaWebDashboard.Models
     public class DashboardModel
     {
         public string SessionId { get; set; }
-
-        public Type ChildrenType { get; set; }
 
         public Dictionary<string, DataValue> Children { get; set; }
 

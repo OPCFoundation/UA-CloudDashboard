@@ -47,7 +47,6 @@ namespace OpcUaWebDashboard.Controllers
         public ActionResult Index()
         {
             DashboardModel dashboardModel = new DashboardModel();
-            dashboardModel.ChildrenType = typeof(ContosoOpcUaNode);
             dashboardModel.SessionId = HttpContext.Session.Id;
             dashboardModel.ShopfloorType = "Simulation";
             dashboardModel.Children = MessageProcessor.ReceivedDataValues;
