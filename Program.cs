@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp;
 using Microsoft.Extensions.Hosting;
 
 namespace OpcUaWebDashboard

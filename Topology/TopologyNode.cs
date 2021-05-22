@@ -1,10 +1,10 @@
 ﻿
 using System.Collections.Generic;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Topology
+namespace OpcUaWebDashboard
 {
     /// <summary>
-    /// 
+    ///
     /// Represents a node in the topology.
     /// </summary>
     public class TopologyNode : ITopologyNode, IEqualityComparer<TopologyNode>
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Topology
         public string Parent { get; set; }
 
         /// <summary>
-        /// Returns the number of children. 
+        /// Returns the number of children.
         /// </summary>
         /// <returns>Number of children of this node.</returns>
         public ulong ChildrenCount { get; set; }
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Topology
             Children.Add(child.Key);
         }
 
-    
+
         /// <summary>
         /// Implementation of IEqualtyComparer:Equals.
         /// </summary>

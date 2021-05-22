@@ -1,11 +1,10 @@
-﻿using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.OpcUa;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Contoso
+namespace OpcUaWebDashboard
 {
     /// <summary>
     /// Contoso related base information for query

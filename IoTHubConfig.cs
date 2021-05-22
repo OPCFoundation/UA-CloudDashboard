@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp
+namespace OpcUaWebDashboard
 {
     public class IoTHubConfig
     {

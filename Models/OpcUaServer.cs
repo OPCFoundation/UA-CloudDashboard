@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
-using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Contoso;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.OpcUa
+namespace OpcUaWebDashboard
 {
     /// <summary>
     /// Class for a OPC UA node in an OPC UA server.

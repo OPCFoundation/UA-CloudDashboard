@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Controllers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpcUaWebDashboard.Controllers;
 using System;
 
 namespace OpcUaWebDashboard
@@ -38,11 +38,12 @@ namespace OpcUaWebDashboard
             }
             else
             {
-                app.UseExceptionHandler("/Browser/Error");
+                app.UseExceptionHandler("/DashboardController/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
             app.UseHttpsRedirection();
+
             app.UseStaticFiles();
 
             app.UseSession();
@@ -55,7 +56,7 @@ namespace OpcUaWebDashboard
             {
                 endpoints.MapControllerRoute(
                     name: "default",
-                    pattern: "{controller=DashboardController}/{action=Index}/{id?}");
+                    pattern: "{controller=Dashboard}/{action=Index}/{id?}");
                 endpoints.MapHub<StatusHub>("/statushub");
             });
         }

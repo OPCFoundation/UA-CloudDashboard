@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Contoso
+namespace OpcUaWebDashboard
 {
     public class FactoryDescription : ContosoTopologyDescriptionCommon
     {

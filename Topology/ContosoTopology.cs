@@ -1,15 +1,13 @@
-﻿using OpcUaWebDashboard;
+﻿using Newtonsoft.Json;
+using OpcUaWebDashboard.Models;
 using OpcUaWebDashboard.Properties;
-using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Models;
-using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Topology;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Contoso
+namespace OpcUaWebDashboard
 {
     /// <summary>
     /// Class to describe the shopfloor characteristics

@@ -1,5 +1,5 @@
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Models
+namespace OpcUaWebDashboard.Models
 {
     public class ErrorViewModel
     {

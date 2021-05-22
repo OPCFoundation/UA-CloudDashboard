@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Topology
+namespace OpcUaWebDashboard
 {
     public interface ITopologyTree
     {

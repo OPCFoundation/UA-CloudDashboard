@@ -1,8 +1,7 @@
-﻿using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Contoso;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Models
+namespace OpcUaWebDashboard.Models
 {
     /// <summary>
     /// A view model for the Dashboard view.

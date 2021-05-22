@@ -1,17 +1,15 @@
 ﻿using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
-using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Contoso;
 using Newtonsoft.Json;
+using OpcUaWebDashboard.Controllers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp
+namespace OpcUaWebDashboard
 {
-    using static Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Controllers.DashboardController;
-
     public class MonitoredItemDataValue
     {
         public string Value { get; set; }
@@ -157,7 +155,7 @@ namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp
                         // if there are sessions looking at stations we update sessions each second
                         if (_sessionUpdateStopwatch.ElapsedMilliseconds > TimeSpan.FromSeconds(1).TotalMilliseconds)
                         {
-                            if (SessionsViewingStationsCount() != 0)
+                            if (DashboardController.SessionsViewingStationsCount() != 0)
                             {
                                 try
                                 {

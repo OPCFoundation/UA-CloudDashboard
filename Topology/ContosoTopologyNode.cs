@@ -1,9 +1,7 @@
-﻿using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Topology;
-using System;
+﻿using System;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Contoso
+namespace OpcUaWebDashboard
 {
-
     /// <summary>
     /// The location of the node.
     /// </summary>
@@ -103,7 +101,7 @@ namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Contoso
         /// </summary>
         public string GroupLabelLength { get; set; }
 
-  
+
         /// <summary>
         /// Ctor for the topology node using values.
         /// </summary>

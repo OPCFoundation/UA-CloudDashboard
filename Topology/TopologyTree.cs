@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Topology
+namespace OpcUaWebDashboard
 {
     /// <summary>
     /// Represents the topology tree.
@@ -16,7 +16,7 @@ namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Topology
         private TopologyNode _topologyRoot;
 
         /// <summary>
-        /// All nodes of the topology as a hashtable. 
+        /// All nodes of the topology as a hashtable.
         /// </summary>
         protected Hashtable TopologyTable;
 

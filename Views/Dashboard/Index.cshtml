@@ -1,6 +1,6 @@
-﻿@using System.Globalization
-@using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Models
-@using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Contoso
+﻿
+@using OpcUaWebDashboard.Models
+@using OpcUaWebDashboard
 @using OpcUaWebDashboard.Properties;
 
 @model DashboardModel
@@ -23,11 +23,6 @@
                 await Html.RenderPartialAsync("_ChildrenList", Model);
             }
         </div>
-        @*<div class="row dashboard_alerts_container col-xs-12 col-sm-12 col-md-3 col-lg-3">
-                @{
-                    Html.RenderPartial("_Alerts", Model);
-                }
-            </div>*@
     </div>
 
     @if (Model.ShopfloorType != null && Model.ShopfloorType.Equals("Simulation") && Model.ChildrenType == typeof(ContosoOpcUaNode))

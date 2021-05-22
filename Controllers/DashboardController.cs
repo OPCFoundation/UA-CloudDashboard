@@ -1,14 +1,13 @@
-﻿using OpcUaWebDashboard.Properties;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Contoso;
-using Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Models;
+using OpcUaWebDashboard.Models;
+using OpcUaWebDashboard.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
-namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Controllers
+namespace OpcUaWebDashboard.Controllers
 {
     public class StatusHub : Hub
     {
@@ -19,6 +18,8 @@ namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Controllers
     /// </summary>
     public class DashboardController : Controller
     {
+        private IHubContext<StatusHub> _hubContext;
+
         public static void RemoveSessionFromSessionsViewingStations(string sessionId)
         {
             _sessionListSemaphore.Wait();
@@ -75,8 +76,16 @@ namespace Microsoft.Azure.IoTSuite.Connectedfactory.WebApp.Controllers
         /// <summary>
         /// Initializes a new instance of the DashboardController class.
         /// </summary>
-        public DashboardController()
+        public DashboardController(IHubContext<StatusHub> hubContext)
         {
+            _hubContext = hubContext;
+
+            Init();
+        }
+
+        public ActionResult Privacy()
+        {
+            return View("Privacy");
         }
 
         public ActionResult Index(string topNode)
