@@ -2,7 +2,6 @@
 using Microsoft.Azure.EventHubs.Processor;
 using Newtonsoft.Json;
 using Opc.Ua;
-using OpcUaWebDashboard.Controllers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -45,19 +44,19 @@ namespace OpcUaWebDashboard
     /// </summary>
     public class MessageProcessor : IEventProcessor
     {
-        /// <summary>
-        /// Opens the event processing for the given partition context.
-        /// </summary>
+        private Stopwatch _checkpointStopwatch;
+        private const double _checkpointPeriodInMinutes = 5;
+
+        public static Dictionary<string, DataValue> ReceivedDataValues = new Dictionary<string, DataValue>();
+
         public Task OpenAsync(PartitionContext context)
         {
+            ReceivedDataValues.Clear();
+
             // get number of messages between checkpoints
             _checkpointStopwatch = new Stopwatch();
             _checkpointStopwatch.Start();
 
-            if (_sessionUpdateStopwatch == null)
-            {
-                _sessionUpdateStopwatch = new Stopwatch();
-            }
             return Task.CompletedTask;
         }
 
@@ -74,11 +73,6 @@ namespace OpcUaWebDashboard
             {
                 await context.CheckpointAsync();
             }
-
-            if (_sessionUpdateStopwatch != null)
-            {
-                _sessionUpdateStopwatch = null;
-            }
         }
 
         private void ProcessPublisherMessage(OpcUaPubSubJsonMessage publisherMessage)
@@ -87,16 +81,15 @@ namespace OpcUaWebDashboard
             {
                 foreach (string nodeId in message.Payload.Keys)
                 {
-                    // get the OPC UA node object
-                    ContosoOpcUaNode opcUaNode = ContosoTopology.Topology.GetOpcUaNode(message.DataSetWriterId, nodeId);
-                    if (opcUaNode == null)
+                    // Update to last value or add it if we see it for the first time
+                    if (ReceivedDataValues.ContainsKey(nodeId))
                     {
-                        continue;
+                        ReceivedDataValues[nodeId] = message.Payload[nodeId];
                     }
-
-                    // Update last value.
-                    opcUaNode.LastValue = message.Payload[nodeId].Value.ToString();
-                    opcUaNode.LastValueTimestamp = DateTime.UtcNow.ToString();
+                    else
+                    {
+                        ReceivedDataValues.Add(nodeId, message.Payload[nodeId]);
+                    }
                 }
             }
         }
@@ -113,8 +106,6 @@ namespace OpcUaWebDashboard
         /// </summary>
         public async Task ProcessEventsAsync(PartitionContext context, IEnumerable<EventData> ingestedMessages)
         {
-            _sessionUpdateStopwatch.Start();
-
             // process each message
             foreach (var eventData in ingestedMessages)
             {
@@ -130,7 +121,6 @@ namespace OpcUaWebDashboard
                     message = Encoding.UTF8.GetString(eventData.Body.Array, eventData.Body.Offset, eventData.Body.Count);
                     if (message != null)
                     {
-                        _processorHostMessages++;
                         // support batched messages as well as simple message ingests
                         if (message.StartsWith("["))
                         {
@@ -139,7 +129,6 @@ namespace OpcUaWebDashboard
                             {
                                 if (publisherMessage != null)
                                 {
-                                    _publisherMessages++;
                                     try
                                     {
                                         ProcessPublisherMessage(publisherMessage);
@@ -154,30 +143,9 @@ namespace OpcUaWebDashboard
                         else
                         {
                             OpcUaPubSubJsonMessage publisherMessage = JsonConvert.DeserializeObject<OpcUaPubSubJsonMessage>(message);
-                            _publisherMessagesInvalidFormat++;
                             if (publisherMessage != null)
                             {
                                 ProcessPublisherMessage(publisherMessage);
-                            }
-                        }
-
-                        // if there are sessions looking at stations we update sessions each second
-                        if (_sessionUpdateStopwatch.ElapsedMilliseconds > TimeSpan.FromSeconds(1).TotalMilliseconds)
-                        {
-                            if (DashboardController.SessionsViewingStationsCount() != 0)
-                            {
-                                try
-                                {
-                                    Trace.TraceInformation($"processorHostMessages {_processorHostMessages}, publisherMessages {_publisherMessages}/{_publisherMessagesInvalidFormat}");
-                                }
-                                catch (Exception e)
-                                {
-                                    Trace.TraceError($"Exception '{e.Message}' while updating browser sessions");
-                                }
-                                finally
-                                {
-                                    _sessionUpdateStopwatch.Restart();
-                                }
                             }
                         }
                     }
@@ -188,13 +156,6 @@ namespace OpcUaWebDashboard
                 }
             }
         }
-
-        private Stopwatch _checkpointStopwatch;
-        private const double _checkpointPeriodInMinutes = 5;
-        private Stopwatch _sessionUpdateStopwatch;
-        private int _processorHostMessages;
-        private int _publisherMessages;
-        private int _publisherMessagesInvalidFormat;
     }
 }
 

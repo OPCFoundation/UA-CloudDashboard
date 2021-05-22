@@ -52,9 +52,6 @@ namespace OpcUaWebDashboard
         public uint OpcPublishingInterval;
 
         [JsonProperty]
-        public ContosoPushPinCoordinates ImagePushpin;
-
-        [JsonProperty]
         public string GroupLabel;
 
         [JsonProperty]
@@ -203,11 +200,6 @@ namespace OpcUaWebDashboard
         public double? Maximum { get; set; }
 
         /// <summary>
-        /// Define Pushpin coordinates in px from the top and from the left border of the image.
-        /// <summary>
-        public ContosoPushPinCoordinates ImagePushpin { get; set; }
-
-        /// <summary>
         /// Define group label.
         /// <summary>
         public string GroupLabel { get; set; }
@@ -229,7 +221,6 @@ namespace OpcUaWebDashboard
             double? constValue,
             double? minimum,
             double? maximum,
-            ContosoPushPinCoordinates imagePushpin,
             string groupLabel,
             string groupLabelLength
             )
@@ -242,7 +233,6 @@ namespace OpcUaWebDashboard
             Minimum = minimum;
             Maximum = maximum;
             Last = new ContosoDataItem();
-            ImagePushpin = imagePushpin;
             GroupLabel = groupLabel;
             GroupLabelLength = groupLabelLength;
         }
@@ -265,7 +255,6 @@ namespace OpcUaWebDashboard
             Maximum = opcNodeDescription.Maximum;
 
             Last = new ContosoDataItem();
-            ImagePushpin = opcNodeDescription.ImagePushpin;
             GroupLabel = opcNodeDescription.GroupLabel;
             GroupLabelLength = opcNodeDescription.GroupLabelLength;
         }
@@ -332,9 +321,8 @@ namespace OpcUaWebDashboard
             string url,
             string name,
             bool useSecurity,
-            string description,
-            StationDescription stationDescription)
-            : base(shopfloorDomain, shopfloorType, uri, url, name, description, useSecurity, stationDescription)
+            string description)
+            : base(shopfloorDomain, shopfloorType, uri, url, name, description, useSecurity)
         {
         }
 
@@ -350,7 +338,6 @@ namespace OpcUaWebDashboard
             double? constValue,
             double? minimum,
             double? maximum,
-            ContosoPushPinCoordinates imagePushpin,
             string groupLabel,
             string groupLabelLength)
         {
@@ -372,7 +359,6 @@ namespace OpcUaWebDashboard
                 constValue,
                 minimum,
                 maximum,
-                imagePushpin,
                 groupLabel,
                 groupLabelLength);
 
@@ -391,7 +377,7 @@ namespace OpcUaWebDashboard
                     )
                 {
                     throw new Exception(string.Format("The OPC UA node with NodeId '{0}' and SymbolicName '{1}' does already exist for station '{2}'. Please change.",
-                        opcUaNodeDescription.NodeId ?? opcUaNodeDescription.ExpandedNodeId, opcUaNodeDescription.SymbolicName, Name));
+                        opcUaNodeDescription.NodeId ?? opcUaNodeDescription.ExpandedNodeId, opcUaNodeDescription.SymbolicName));
                 }
             }
             ContosoOpcUaNode opcUaNodeObject = new ContosoOpcUaNode(

@@ -32,7 +32,7 @@ namespace OpcUaWebDashboard
     /// <summary>
     /// Represents an OPC UA server. It owns all OPC UA entities (like OPC UA NodeId's, ...) exposed by the server.
     /// </summary>
-    public class OpcUaServer : ContosoTopologyNode
+    public class OpcUaServer
     {
         /// <summary>
         /// The list of OPC UA nodes in this OPC UA server.
@@ -58,13 +58,12 @@ namespace OpcUaWebDashboard
         /// Creates a new topology node, which is an OPC UA server. A station in the topology is equal to an OPC UA server.
         /// This is the reason why the station description is passed in as a parameter.
         /// </summary>
-        public OpcUaServer(string shopfloorDomain, string shopfloorType, string uri, string url, string name, string description, bool useSecurity, StationDescription stationDescription) : base(uri + (string.IsNullOrEmpty(shopfloorDomain) ? "": (":" + shopfloorDomain)), name, description, stationDescription)
+        public OpcUaServer(string shopfloorDomain, string shopfloorType, string uri, string url, string name, string description, bool useSecurity)
         {
             NodeList = new List<OpcUaNode>();
             EndpointUrl = url;
             UseSecurity = useSecurity;
             ApplicationUri = uri + (string.IsNullOrEmpty(shopfloorDomain) ? "" : (":" + shopfloorDomain));
-            ShopfloorType = shopfloorType;
         }
 
         /// <summary>
