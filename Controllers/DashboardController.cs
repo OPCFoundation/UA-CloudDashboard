@@ -15,7 +15,7 @@ namespace OpcUaWebDashboard.Controllers
     /// </summary>
     public class DashboardController : Controller
     {
-        private IHubContext<StatusHub> _hubContext;
+        private static IHubContext<StatusHub> _hubContext;
 
         /// <summary>
         /// Initializes a new instance of the DashboardController class.
@@ -29,14 +29,14 @@ namespace OpcUaWebDashboard.Controllers
         /// Sends the message to all connected clients as status indication
         /// </summary>
         /// <param name="message">Text to show on web page</param>
-        private void UpdateStatus(string message)
+        public static  void UpdateStatus(string message)
         {
             if (string.IsNullOrWhiteSpace(message))
             {
                 throw new ArgumentException(nameof(message));
             }
 
-            _hubContext.Clients.All.SendAsync("addNewMessageToPage", HttpContext?.Session.Id, message).Wait();
+            _hubContext.Clients.All.SendAsync("addNewMessageToPage", null, message).Wait();
         }
 
         public ActionResult Privacy()
@@ -55,6 +55,7 @@ namespace OpcUaWebDashboard.Controllers
             dashboardModel.ChildrenListHeaderDetails = Resources.ChildrenOpcUaNodeListListHeaderDetails;
             dashboardModel.ChildrenListHeaderLocation = Resources.ChildrenOpcUaNodeListListHeaderLocation;
             dashboardModel.ChildrenListHeaderStatus = Resources.ChildrenOpcUaNodeListListHeaderStatus;
+
             return View(dashboardModel);
         }
     }

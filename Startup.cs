@@ -57,6 +57,7 @@ namespace OpcUaWebDashboard
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Dashboard}/{action=Index}/{id?}");
+
                 endpoints.MapHub<StatusHub>("/statushub");
             });
         }

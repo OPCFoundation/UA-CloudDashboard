@@ -9,12 +9,6 @@
     ViewBag.Title = @Resources.Dashboard;
 }
 
-@section scripts {
-    <script src="~/Scripts/d3.js" charset="utf-8"></script>
-    <script src="~/Scripts/c3.js"></script>
-    <script>'use strict';</script>
-}
-
 <div class="dashboard_container container-fluid">
     <div class="row dashboard_top_container">
         <div class="dashboard_children_container col-xs-12 col-sm-12 col-md-6 col-lg-6">
@@ -23,1294 +17,936 @@
             }
         </div>
     </div>
+    <div class="row dashboard_top_container">
+        <p>Data Received: <div class="alert alert-light" id="message"></div></p>
+    </div>
 </div>
 
-<script>
-    // OEE/KPI Colors
-    const red = "#FC540A";
-    const blue = "#7065FD";
-    const yellow = "#FFEE91";
-    var title = "@Resources.TitleDashboard";
+@section scripts {
+    <script src="~/Scripts/d3.js" charset="utf-8"></script>
+    <script src="~/Scripts/c3.js"></script>
+    <script>'use strict';</script>
+    <script>
+        // OEE/KPI Colors
+        const red = "#FC540A";
+        const blue = "#7065FD";
+        const yellow = "#FFEE91";
 
-    $(async function () {
-        //connection to SignalR hub
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/statusHub")
-            .configureLogging(signalR.LogLevel.Information)
-            .build();
+        var title = "@Resources.TitleDashboard";
 
-        // Create a function that the hub can call back to display messages
-        connection.on("addNewMessageToPage", (session, message) => {
-            $('#message').text(message);
-        });
+        $(async function () {
+            //connection to SignalR hub
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/statusHub")
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
 
-        // Start/continue the connection
-        async function establishSignalRConnection() {
-            try {
-                await connection.start();
-                console.log("connection to signalr hub successfull established");
-            } catch (err) {
-                console.warn("Error creating SignalR connection, retry in 5 seconds %o", err);
-                setTimeout(async () => { await establishSignalRConnection() }, 5000);
-            }
-        };
+            // Create a function that the hub can call back to display messages
+            connection.on("addNewMessageToPage", (session, message) => {
+                $('#message').text(message);
+            });
 
-        connection.onclose(async () => {
+            // Start/continue the connection
+            async function establishSignalRConnection() {
+                try {
+                    await connection.start();
+                    console.log("connection to signalr hub successfull established");
+                } catch (err) {
+                    console.warn("Error creating SignalR connection, retry in 5 seconds %o", err);
+                    setTimeout(async () => { await establishSignalRConnection() }, 5000);
+                }
+            };
+
+            connection.onclose(async () => {
+                await establishSignalRConnection();
+            });
+
+            // Start the connection.
             await establishSignalRConnection();
         });
 
-        // Start the connection.
-        await establishSignalRConnection();
-    });
-
-    function changeHeight() {
-        var heightMap = $(".dashboard_map_container").height();
-        var heightAlerts = $(".dashboard_alerts_list_container").height();
-        var heightChildren = $(".dashboard_children_list_container").height();
-        var navigation = $(".navigation").height();
-        var kpi = $(".dashboard_bottom_container").height();
-        const minContainerHeight = 300;
-        const offsetMap = 115;
-        const offsetAlerts = 200;
-        const offsetChildren = 220;
-        const commonBottomOffset = 30;
-        const additionalMapHeight = 111;
-        const additionalAlertHeight = 20;
+        function changeHeight() {
+            var heightMap = $(".dashboard_map_container").height();
+            var heightAlerts = $(".dashboard_alerts_list_container").height();
+            var heightChildren = $(".dashboard_children_list_container").height();
+            var navigation = $(".navigation").height();
+            var kpi = $(".dashboard_bottom_container").height();
+            const minContainerHeight = 300;
+            const offsetMap = 115;
+            const offsetAlerts = 200;
+            const offsetChildren = 220;
+            const commonBottomOffset = 30;
+            const additionalMapHeight = 111;
+            const additionalAlertHeight = 20;
 
 
-        if ("@Model.ShopfloorType" != null && "@Model.ShopfloorType" != "Simulation") {
-            heightMap = navigation - offsetMap + commonBottomOffset;
-            heightAlerts = navigation - offsetAlerts + commonBottomOffset;
-            heightChildren = navigation - offsetChildren + commonBottomOffset;
-        }
-        else {
-            if (navigation - kpi - offsetChildren < minContainerHeight) {
-                heightMap = minContainerHeight + additionalMapHeight;
-                heightAlerts = minContainerHeight + additionalAlertHeight;
-                heightChildren = minContainerHeight;
-            } else {
-                heightMap = navigation - kpi - offsetMap;
-                heightAlerts = navigation - kpi - offsetAlerts;
-                heightChildren = navigation - kpi - offsetChildren;
-            }
-        }
-
-        $(".dashboard_map_container").css("height", heightMap);
-        $(".dashboard_alerts_list_container").css("height", heightAlerts);
-        $(".dashboard_children_list_container").css("height", heightChildren);
-    }
-
-    //
-    // Graph Context panel
-    //
-    var nodeName;
-    var rdxExplorerHourLink;
-    var rdxExplorerDayLink;
-    var rdxExplorerWeekLink;
-    var alertDetailRdxUrl;
-
-    function closeChartContextPanel() {
-        $("#dashboardContextpanel").addClass("overlay-close").removeClass("overlay-right-open-big")
-    }
-
-    var maxThreshold;
-    var minThreshold;
-
-    var widthGraph;
-    if(window.matchMedia('(max-width: 480px)').matches) {
-        // the width of browser is less or equal then 480px
-        var widthGraph = 350;
-    } else {
-        // the width of browser is greater then 480px
-        var widthGraph = 420;
-    }
-
-    var heightGraph = 215;
-    var paddingTop = 10;
-    var paddingLeft = 90;
-    var colorGraph1 = '#2e9b8a';
-    var colorGraph2 = '#FFEE91';
-    var colorGraph3 = '#D66FFC';
-    var colorAlertDetailChart = '#2e9b8a';
-    var colorAlertThreshold = '#fC540A'
-    var gridGraph1 = initGridArray(2,60,3);
-    var gridGraph2 = initGridArray(1,24,2);
-    var gridGraph3 = initGridArray(0,7.5,0.5);
-    var gridAlertDetailChart = initGridArray(2,60,3);
-
-    function initGridArray(initValue, maxValue, step) {
-        var line = [];
-        for (var i = initValue; i < maxValue; i=i+step) {
-            line.push({value: i});
-        }
-        return line;
-    }
-
-    var chart1 = c3.generate({
-        bindto: '#dashboardContextpanelOnehourHistory',
-        size: {
-            width: widthGraph,
-            height: heightGraph
-        },
-        data: {
-            x: 'x',
-            columns: [
-              ['x', "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
-              ['data', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-            ],
-            colors: {
-                data: colorGraph1
-            },
-            type: 'spline'
-        },
-        axis: {
-            y: {
-                label: {
-                    text: '',
-                    position: 'outer-middle'
-                },
-                tick: {
-                    outer: false,
-                    count: 15,
-                    format: d3.format("d")
-                },
-                padding: 0
-            },
-            x: {
-                show: true,
-                type: 'category',
-                height: 60,
-                tick: {
-                    rotate: 0,
-                    culling: {
-                        max: 3
-                    },
-                    centered: false,
-                    fit: true,
-                    multiline: false,
-                    outer: false,
-                }
-            },
-        },
-        grid:{
-            x: {
-                lines: gridGraph1
-            }
-        },
-        padding: {
-            top: paddingTop,
-            left: paddingLeft
-        },
-        point: {
-            show: false
-        },
-        tooltip: {
-            grouped: false
-        },
-        legend: {
-            show: false
-        }
-    });
-
-    var chart2 = c3.generate({
-        bindto: '#dashboardContextpanelOnedayHistory',
-        size: {
-            width: widthGraph,
-            height: heightGraph
-        },
-        data: {
-            x: 'x',
-            columns: [
-              ['x', "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
-              ['data', 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-            ],
-            colors: {
-                data: colorGraph2
-
-            },
-            type: 'spline'
-        },
-        axis: {
-            y: {
-                label: {
-                    text: '',
-                    position: 'outer-middle'
-                },
-                tick: {
-                    outer: false,
-                    count: 15,
-                    format: d3.format("d")
-                },
-                padding: 0
-            },
-            x: {
-                show: true,
-                type: 'category',
-                height: 60,
-                tick: {
-                    rotate: 0,
-                    culling: {
-                        max: 3
-                    },
-                    centered: false,
-                    fit: true,
-                    multiline: false,
-                    outer: false
-                }
-            },
-        },
-        grid:{
-            x: {
-                lines: gridGraph2
-            }
-        },
-        padding: {
-            top: paddingTop,
-            left: paddingLeft
-        },
-        point: {
-            show: false
-        },
-        tooltip: {
-            grouped: false
-        },
-        legend: {
-            show: false
-        }
-    });
-
-    var chart3 = c3.generate({
-        bindto: '#dashboardContextpanelOneweekHistory',
-        size: {
-            width: widthGraph,
-            height: heightGraph
-        },
-        data: {
-            x: 'x',
-            columns: [
-              ['x', "0", "0", "0", "0", "0", "0", "0"],
-              ['data', 0, 0, 0, 0, 0, 0, 0]
-            ],
-            colors: {
-                data: colorGraph3
-            },
-            type: 'spline'
-        },
-        axis: {
-            y: {
-                label: {
-                    text: '',
-                    position: 'outer-middle'
-                },
-                tick: {
-                    outer: false,
-                    count: 15,
-                    format: d3.format("d")
-                },
-                padding: 0
-            },
-            x: {
-                show: true,
-                type: 'category',
-                height: 65,
-                tick: {
-                    rotate: 0,
-                    culling: {
-                        max: 3
-                    },
-                    centered: false,
-                    fit: true,
-                    multiline: false,
-                    outer: false
-                }
-            },
-        },
-        grid:{
-            x: {
-                lines: gridGraph3
-            }
-        },
-        padding: {
-            top: paddingTop,
-            left: paddingLeft
-        },
-        point: {
-            show: false
-        },
-        tooltip: {
-            grouped: false,
-            color: '#fff'
-        },
-        legend: {
-            show: false
-        }
-    });
-
-    var alertDetailChart = c3.generate({
-        bindto: '#alertDetailChart',
-        size: {
-            width: widthGraph,
-            height: heightGraph
-        },
-        data: {
-            x: 'x',
-            columns: [
-              ['x', "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
-              ['data', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-            ],
-            type: 'spline',
-            colors: {
-                data: function (d) {
-                    var color = colorAlertDetailChart;
-                    if(maxThreshold != null) {
-                        if (d.value >= maxThreshold) {
-                            color = colorAlertThreshold;
-                        }
-                    }
-                    if(minThreshold != null) {
-                        if (d.value <= minThreshold) {
-                            color = colorAlertThreshold;
-                        }
-                    }
-                    return color;
-                }
-            }
-        },
-        axis: {
-            y: {
-                label: {
-                    text: '',
-                    position: 'outer-middle'
-                },
-                tick: {
-                    outer: false,
-                    count: 15,
-                    format: d3.format("d")
-                }
-            },
-            x: {
-                show: true,
-                type: 'category',
-                height: 60,
-                tick: {
-                    rotate: 0,
-                    culling: {
-                        max: 3
-                    },
-                    centered: false,
-                    fit: true,
-                    multiline: false,
-                    outer: false
-                }
-            },
-        },
-        grid:{
-            x: {
-                lines: gridAlertDetailChart
-            }
-        },
-        padding: {
-            top: paddingTop,
-            left: paddingLeft
-        },
-        point: {
-            show: false
-        },
-        tooltip: {
-            show :false
-        },
-        legend: {
-            show: false
-        }
-    });
-
-    // Set the Y lable for the 3 graphs
-    function setLabel(ylabel) {
-        chart1.axis.labels({ y: ylabel });
-        chart2.axis.labels({ y: ylabel });
-        chart3.axis.labels({ y: ylabel });
-    }
-
-    function setChartVerticalSpan(chart, data) {
-        var maxData = 0;
-        var minData = 0;
-
-        chart.axis.max(undefined);
-
-        if (chart == alertDetailChart) {
-            maxThreshold != null ? chart.ygrids.add([{ value: maxThreshold, text: '@Resources.GraphMaxThreshold' }]) : maxThreshold = 0;
-            minThreshold != null ? chart.ygrids.add([{ value: minThreshold, text: '@Resources.GraphMinThreshold' }]) : minThreshold = 0;
-
-            maxData = Math.max(Math.max.apply(Math, data.map(Number)), maxThreshold, minThreshold);
-            if (minThreshold != 0) {
-                minData = Math.min(Math.min.apply(Math, data.map(Number)), maxThreshold, minThreshold);
+            if ("@Model.ShopfloorType" != null && "@Model.ShopfloorType" != "Simulation") {
+                heightMap = navigation - offsetMap + commonBottomOffset;
+                heightAlerts = navigation - offsetAlerts + commonBottomOffset;
+                heightChildren = navigation - offsetChildren + commonBottomOffset;
             }
             else {
-                minData = Math.min(Math.min.apply(Math, data.map(Number)), maxThreshold);
-            }
-        }
-        else {
-            maxData = Math.max(Math.max.apply(Math, data.map(Number)));
-            minData = Math.min(Math.min.apply(Math, data.map(Number)));
-        }
-        var maxDataInteger = Math.ceil(maxData * 1.03);
-        var minDataInteger = Math.floor(minData * 0.97);
-
-        chart.axis.max(maxDataInteger);
-        chart.axis.min(minDataInteger);
-
-        var step = (maxDataInteger - minDataInteger) / 15;
-        var values = Array(15).fill(minDataInteger);
-
-        for (var i = 1; i < 14; i++) {
-            // the 0.01 is added to be sure that values are not integer.
-            // Ticks label values have integer type, then only integer labels
-            // are displayed with the corresponding tick.
-            // If all the ticks, except the first one and the last one,
-            // have a decimal part that is not zero they are not displayed
-            values[i] = minDataInteger + step * i + 0.01;
-        }
-        values[14] = maxDataInteger
-
-        chart.internal.config.axis_y_tick_values = values;
-    }
-
-    function getOeeKpiData(key, aggregationView, performanceRelevance, chart) {
-        progressCount = 0;
-        var intervalId = setInterval(function() {
-            progressCount = ++progressCount % 10;
-            $("#timeSeriesLoadingText").html("@Resources.AnimationTimeSeriesLoading " + Array(progressCount+1).join("."));
-        }, 800);
-        $.post({
-            url: "/WebMethod/GetOeeKpiData",
-            data: { __RequestVerificationToken: $('[name=__RequestVerificationToken]').val(), key: key, view: aggregationView, relevance: performanceRelevance },
-            success: function onSuccess(response) {
-                clearInterval(intervalId);
-                var obj = JSON.parse(response);
-                var data = $.trim(obj.YValues).split(",");
-                var xdata = $.trim(obj.XTime).split(",");
-                var xlabel = [];
-                for (var i = 0; i < xdata.length; ++i) {
-                    if (xdata.length < 12) {
-                        if (xdata[i].slice(0,4) != "0001") {
-                            xlabel.push(xdata[i].slice(0,10));
-                        }
-                        else {
-                            xlabel.push(xdata[i].slice(0,9) + i.toString());
-                        }
-                    }
-                    else {
-                        xlabel.push(xdata[i].slice(11,16));
-                    }
-                }
-                xlabel.unshift("x");
-
-                if (obj != "Error") {
-                    $("#timeSeriesLoadingContainer").hide();
-                    $("#alertDetailTimeSeriesContainer").show();
-                    $("#alertDetailNoTimeSeriesContainer").hide();
-
-                    setChartVerticalSpan(chart, data);
-                    chart.flush();
-                    data.unshift("data");
-                    chart.load({ columns: [xlabel, data] });
+                if (navigation - kpi - offsetChildren < minContainerHeight) {
+                    heightMap = minContainerHeight + additionalMapHeight;
+                    heightAlerts = minContainerHeight + additionalAlertHeight;
+                    heightChildren = minContainerHeight;
                 } else {
-                    $("#graphHeader").hide();
-                    $("#graph1").hide();
-                    $("#graph2").hide();
-                    $("#graph3").hide();
-                    $("#nodeMsgHeader").show();
-                    $("#nodeMsg").show();
-                    $("#nodeMsg").html('@Resources.ErrorGetOeeKpiData');
-                    $("#timeSeriesLoadingContainer").hide();
-                    $("#alertDetailTimeSeriesContainer").hide();
-                    $("#alertDetailNoTimeSeriesContainer").show();
-                    $("#alertDetailNoTimeSeriesValue").html('@Resources.ErrorGetOeeKpiData');
+                    heightMap = navigation - kpi - offsetMap;
+                    heightAlerts = navigation - kpi - offsetAlerts;
+                    heightChildren = navigation - kpi - offsetChildren;
+                }
+            }
+
+            $(".dashboard_map_container").css("height", heightMap);
+            $(".dashboard_alerts_list_container").css("height", heightAlerts);
+            $(".dashboard_children_list_container").css("height", heightChildren);
+        }
+
+        //
+        // Graph Context panel
+        //
+        var nodeName;
+        var rdxExplorerHourLink;
+        var rdxExplorerDayLink;
+        var rdxExplorerWeekLink;
+        var alertDetailRdxUrl;
+
+        function closeChartContextPanel() {
+            $("#dashboardContextpanel").addClass("overlay-close").removeClass("overlay-right-open-big")
+        }
+
+        var maxThreshold;
+        var minThreshold;
+
+        var widthGraph;
+        if(window.matchMedia('(max-width: 480px)').matches) {
+            // the width of browser is less or equal then 480px
+            var widthGraph = 350;
+        } else {
+            // the width of browser is greater then 480px
+            var widthGraph = 420;
+        }
+
+        var heightGraph = 215;
+        var paddingTop = 10;
+        var paddingLeft = 90;
+        var colorGraph1 = '#2e9b8a';
+        var colorGraph2 = '#FFEE91';
+        var colorGraph3 = '#D66FFC';
+        var colorAlertDetailChart = '#2e9b8a';
+        var colorAlertThreshold = '#fC540A'
+        var gridGraph1 = initGridArray(2,60,3);
+        var gridGraph2 = initGridArray(1,24,2);
+        var gridGraph3 = initGridArray(0,7.5,0.5);
+        var gridAlertDetailChart = initGridArray(2,60,3);
+
+        function initGridArray(initValue, maxValue, step) {
+            var line = [];
+            for (var i = initValue; i < maxValue; i=i+step) {
+                line.push({value: i});
+            }
+            return line;
+        }
+
+        var chart1 = c3.generate({
+            bindto: '#dashboardContextpanelOnehourHistory',
+            size: {
+                width: widthGraph,
+                height: heightGraph
+            },
+            data: {
+                x: 'x',
+                columns: [
+                  ['x', "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
+                  ['data', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                ],
+                colors: {
+                    data: colorGraph1
+                },
+                type: 'spline'
+            },
+            axis: {
+                y: {
+                    label: {
+                        text: '',
+                        position: 'outer-middle'
+                    },
+                    tick: {
+                        outer: false,
+                        count: 15,
+                        format: d3.format("d")
+                    },
+                    padding: 0
+                },
+                x: {
+                    show: true,
+                    type: 'category',
+                    height: 60,
+                    tick: {
+                        rotate: 0,
+                        culling: {
+                            max: 3
+                        },
+                        centered: false,
+                        fit: true,
+                        multiline: false,
+                        outer: false,
+                    }
+                },
+            },
+            grid:{
+                x: {
+                    lines: gridGraph1
                 }
             },
-            error: function(response) {
-                console.error("error getting Oee/Kpi data: ", response.d, response.responseText);
+            padding: {
+                top: paddingTop,
+                left: paddingLeft
             },
-            complete: function() {
-                clearInterval(intervalId);
+            point: {
+                show: false
+            },
+            tooltip: {
+                grouped: false
+            },
+            legend: {
+                show: false
             }
         });
-    }
 
-    function getDataForOpcUaNode(key, nodeId, aggregationView, chart) {
-        progressCount = 0;
-        var intervalId = setInterval(function() {
-            progressCount = ++progressCount % 10;
-            $("#timeSeriesLoadingText").html("@Resources.AnimationTimeSeriesLoading " + Array(progressCount+1).join("."));
-        }, 800);
-        $.post({
-            url: "/WebMethod/GetDataForOpcUaNode",
-            data: { __RequestVerificationToken: $('[name=__RequestVerificationToken]').val(), key: key, nodeId: nodeId, view: aggregationView },
-            success: function onSuccess(response) {
-                clearInterval(intervalId);
-                var obj = JSON.parse(response);
-                var data = $.trim(obj.YValues).split(",");
-                var xdata = $.trim(obj.XTime).split(",");
-                var xlabel = [];
-                for (var i = 0; i < xdata.length; ++i) {
-                    if (xdata.length < 12) {
-                        if (xdata[i].slice(0,4) != "0001") {
-                            xlabel.push(xdata[i].slice(0,10));
-                        }
-                        else {
-                            xlabel.push(xdata[i].slice(0,9) + i.toString());
-                        }
+        var chart2 = c3.generate({
+            bindto: '#dashboardContextpanelOnedayHistory',
+            size: {
+                width: widthGraph,
+                height: heightGraph
+            },
+            data: {
+                x: 'x',
+                columns: [
+                  ['x', "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
+                  ['data', 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ],
+                colors: {
+                    data: colorGraph2
+
+                },
+                type: 'spline'
+            },
+            axis: {
+                y: {
+                    label: {
+                        text: '',
+                        position: 'outer-middle'
+                    },
+                    tick: {
+                        outer: false,
+                        count: 15,
+                        format: d3.format("d")
+                    },
+                    padding: 0
+                },
+                x: {
+                    show: true,
+                    type: 'category',
+                    height: 60,
+                    tick: {
+                        rotate: 0,
+                        culling: {
+                            max: 3
+                        },
+                        centered: false,
+                        fit: true,
+                        multiline: false,
+                        outer: false
                     }
-                    else {
-                        xlabel.push(xdata[i].slice(11,16));
+                },
+            },
+            grid:{
+                x: {
+                    lines: gridGraph2
+                }
+            },
+            padding: {
+                top: paddingTop,
+                left: paddingLeft
+            },
+            point: {
+                show: false
+            },
+            tooltip: {
+                grouped: false
+            },
+            legend: {
+                show: false
+            }
+        });
+
+        var chart3 = c3.generate({
+            bindto: '#dashboardContextpanelOneweekHistory',
+            size: {
+                width: widthGraph,
+                height: heightGraph
+            },
+            data: {
+                x: 'x',
+                columns: [
+                  ['x', "0", "0", "0", "0", "0", "0", "0"],
+                  ['data', 0, 0, 0, 0, 0, 0, 0]
+                ],
+                colors: {
+                    data: colorGraph3
+                },
+                type: 'spline'
+            },
+            axis: {
+                y: {
+                    label: {
+                        text: '',
+                        position: 'outer-middle'
+                    },
+                    tick: {
+                        outer: false,
+                        count: 15,
+                        format: d3.format("d")
+                    },
+                    padding: 0
+                },
+                x: {
+                    show: true,
+                    type: 'category',
+                    height: 65,
+                    tick: {
+                        rotate: 0,
+                        culling: {
+                            max: 3
+                        },
+                        centered: false,
+                        fit: true,
+                        multiline: false,
+                        outer: false
+                    }
+                },
+            },
+            grid:{
+                x: {
+                    lines: gridGraph3
+                }
+            },
+            padding: {
+                top: paddingTop,
+                left: paddingLeft
+            },
+            point: {
+                show: false
+            },
+            tooltip: {
+                grouped: false,
+                color: '#fff'
+            },
+            legend: {
+                show: false
+            }
+        });
+
+        var alertDetailChart = c3.generate({
+            bindto: '#alertDetailChart',
+            size: {
+                width: widthGraph,
+                height: heightGraph
+            },
+            data: {
+                x: 'x',
+                columns: [
+                  ['x', "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
+                  ['data', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                ],
+                type: 'spline',
+                colors: {
+                    data: function (d) {
+                        var color = colorAlertDetailChart;
+                        if(maxThreshold != null) {
+                            if (d.value >= maxThreshold) {
+                                color = colorAlertThreshold;
+                            }
+                        }
+                        if(minThreshold != null) {
+                            if (d.value <= minThreshold) {
+                                color = colorAlertThreshold;
+                            }
+                        }
+                        return color;
                     }
                 }
-                xlabel.unshift("x");
+            },
+            axis: {
+                y: {
+                    label: {
+                        text: '',
+                        position: 'outer-middle'
+                    },
+                    tick: {
+                        outer: false,
+                        count: 15,
+                        format: d3.format("d")
+                    }
+                },
+                x: {
+                    show: true,
+                    type: 'category',
+                    height: 60,
+                    tick: {
+                        rotate: 0,
+                        culling: {
+                            max: 3
+                        },
+                        centered: false,
+                        fit: true,
+                        multiline: false,
+                        outer: false
+                    }
+                },
+            },
+            grid:{
+                x: {
+                    lines: gridAlertDetailChart
+                }
+            },
+            padding: {
+                top: paddingTop,
+                left: paddingLeft
+            },
+            point: {
+                show: false
+            },
+            tooltip: {
+                show :false
+            },
+            legend: {
+                show: false
+            }
+        });
 
-                if ((obj[0] != "Error") && (obj[0] != "NoTimeSeries")) {
-                    $("#timeSeriesLoadingContainer").hide();
-                    $("#alertDetailTimeSeriesContainer").show();
-                    $("#alertDetailNoTimeSeriesContainer").hide();
+        // Set the Y lable for the 3 graphs
+        function setLabel(ylabel) {
+            chart1.axis.labels({ y: ylabel });
+            chart2.axis.labels({ y: ylabel });
+            chart3.axis.labels({ y: ylabel });
+        }
 
-                    setChartVerticalSpan(chart, data);
-                    chart.flush();
-                    data.unshift("data");
-                    chart.load({ columns: [xlabel, data] });
-                } else {
-                    $("#graphHeader").hide();
-                    $("#graph1").hide();
-                    $("#graph2").hide();
-                    $("#graph3").hide();
-                    $("#nodeMsgHeader").show();
-                    $("#nodeMsg").show();
-                    $("#timeSeriesLoadingContainer").hide();
-                    $("#alertDetailTimeSeriesContainer").hide();
-                    $("#alertDetailNoTimeSeriesContainer").show();
-                    if (obj[0] == "Error") {
-                        $("#nodeMsg").text('@Resources.ErrorGetDataForOpcUaNode');
-                        $("#alertDetailNoTimeSeriesValue").html('@Resources.ErrorGetDataForOpcUaNode');
+        function setChartVerticalSpan(chart, data) {
+            var maxData = 0;
+            var minData = 0;
+
+            chart.axis.max(undefined);
+
+            if (chart == alertDetailChart) {
+                maxThreshold != null ? chart.ygrids.add([{ value: maxThreshold, text: '@Resources.GraphMaxThreshold' }]) : maxThreshold = 0;
+                minThreshold != null ? chart.ygrids.add([{ value: minThreshold, text: '@Resources.GraphMinThreshold' }]) : minThreshold = 0;
+
+                maxData = Math.max(Math.max.apply(Math, data.map(Number)), maxThreshold, minThreshold);
+                if (minThreshold != 0) {
+                    minData = Math.min(Math.min.apply(Math, data.map(Number)), maxThreshold, minThreshold);
+                }
+                else {
+                    minData = Math.min(Math.min.apply(Math, data.map(Number)), maxThreshold);
+                }
+            }
+            else {
+                maxData = Math.max(Math.max.apply(Math, data.map(Number)));
+                minData = Math.min(Math.min.apply(Math, data.map(Number)));
+            }
+            var maxDataInteger = Math.ceil(maxData * 1.03);
+            var minDataInteger = Math.floor(minData * 0.97);
+
+            chart.axis.max(maxDataInteger);
+            chart.axis.min(minDataInteger);
+
+            var step = (maxDataInteger - minDataInteger) / 15;
+            var values = Array(15).fill(minDataInteger);
+
+            for (var i = 1; i < 14; i++) {
+                // the 0.01 is added to be sure that values are not integer.
+                // Ticks label values have integer type, then only integer labels
+                // are displayed with the corresponding tick.
+                // If all the ticks, except the first one and the last one,
+                // have a decimal part that is not zero they are not displayed
+                values[i] = minDataInteger + step * i + 0.01;
+            }
+            values[14] = maxDataInteger
+
+            chart.internal.config.axis_y_tick_values = values;
+        }
+
+        function getOeeKpiData(key, aggregationView, performanceRelevance, chart) {
+            progressCount = 0;
+            var intervalId = setInterval(function() {
+                progressCount = ++progressCount % 10;
+                $("#timeSeriesLoadingText").html("@Resources.AnimationTimeSeriesLoading " + Array(progressCount+1).join("."));
+            }, 800);
+            $.post({
+                url: "/WebMethod/GetOeeKpiData",
+                data: { __RequestVerificationToken: $('[name=__RequestVerificationToken]').val(), key: key, view: aggregationView, relevance: performanceRelevance },
+                success: function onSuccess(response) {
+                    clearInterval(intervalId);
+                    var obj = JSON.parse(response);
+                    var data = $.trim(obj.YValues).split(",");
+                    var xdata = $.trim(obj.XTime).split(",");
+                    var xlabel = [];
+                    for (var i = 0; i < xdata.length; ++i) {
+                        if (xdata.length < 12) {
+                            if (xdata[i].slice(0,4) != "0001") {
+                                xlabel.push(xdata[i].slice(0,10));
+                            }
+                            else {
+                                xlabel.push(xdata[i].slice(0,9) + i.toString());
+                            }
+                        }
+                        else {
+                            xlabel.push(xdata[i].slice(11,16));
+                        }
+                    }
+                    xlabel.unshift("x");
+
+                    if (obj != "Error") {
+                        $("#timeSeriesLoadingContainer").hide();
+                        $("#alertDetailTimeSeriesContainer").show();
+                        $("#alertDetailNoTimeSeriesContainer").hide();
+
+                        setChartVerticalSpan(chart, data);
+                        chart.flush();
+                        data.unshift("data");
+                        chart.load({ columns: [xlabel, data] });
                     } else {
-                        $("#nodeMsg").text(nodeName + ' = ' + obj[1] + obj[2]);
-                        $("#alertDetailNoTimeSeriesValue").html(nodeName + ' = ' + obj[1] + obj[2]);
+                        $("#graphHeader").hide();
+                        $("#graph1").hide();
+                        $("#graph2").hide();
+                        $("#graph3").hide();
+                        $("#nodeMsgHeader").show();
+                        $("#nodeMsg").show();
+                        $("#nodeMsg").html('@Resources.ErrorGetOeeKpiData');
+                        $("#timeSeriesLoadingContainer").hide();
+                        $("#alertDetailTimeSeriesContainer").hide();
+                        $("#alertDetailNoTimeSeriesContainer").show();
+                        $("#alertDetailNoTimeSeriesValue").html('@Resources.ErrorGetOeeKpiData');
                     }
+                },
+                error: function(response) {
+                    console.error("error getting Oee/Kpi data: ", response.d, response.responseText);
+                },
+                complete: function() {
+                    clearInterval(intervalId);
                 }
-            },
-            error: function(response) {
-                console.error("error getting data of OPC UA node: ", response.d, response.responseText);
-            },
-            complete: function() {
-                clearInterval(intervalId);
-            }
-        });
-    }
+            });
+        }
 
-    // SignalR hub client.
-    var telemetry = $.connection.telemetryHub;
-
-    //Bing map and pushpins.
-    var factoryMap = null;
-    var factoryMapPushpin = [];
-
-    //
-    // SignalR hub callback.
-    //
-    $(function () {
-        //
-        // Enable SignalR debugging and logging
-        //
-        $.connection.hub.logging = true;
-
-        $.connection.hub.connectionSlow(function () {
-            console.log("SignalR connection is slow");
-        });
-
-        $.connection.hub.reconnecting(function () {
-            tryingToReconnect = true;
-        });
-
-        $.connection.hub.reconnected(function () {
-            console.log("SignalR is reconnected");
-        });
-
-        $.connection.hub.disconnected(function () {
-            console.log("SignalR is disconnected");
-        });
-
-        //
-        // Children update
-        //
-        var speedLast = '';
-        telemetry.client.updateSessionChildrenData = function (sessionUpdateJson) {
-            sessionUpdate = JSON.parse(sessionUpdateJson);
-            if (sessionUpdate != undefined) {
-                var scrollPosition = $("#childrenListContainer").scrollTop();
-                for (i = 0; i < sessionUpdate.length; i++) {
-                    var session = sessionUpdate[i];
-                    if (session != undefined && session.SessionId != undefined && session.SessionId == "@Model.SessionId") {
-                        // Only update if the filter panel is closed.
-                        if ($("#dashboardFilterContextpanel").hasClass('overlay-close') && session.Children != undefined) {
-                            var childrenList = '';
-                            var subLabelTabCount = 0;
-
-                            for (j = 0; j < session.Children.length; j++) {
-                                childrenList += '<div >';
-                                var updateMap = false;
-                                var dashboardLabelClass = "dashboard_children_label_container";
-                                var dashboardMarginClass = "dashboard_children_listitem_container_label";
-
-                                var statusMessage = "@Resources.Normal";
-                                var dashboardStatusClass = "dashboard_status_good";
-
-                                if (factoryMapPushpin != undefined) {
-                                    if (factoryMapPushpin != null && factoryMapPushpin.Length > j && factoryMapPushpin[j] != null) {
-                                        factoryMapPushpin[j].setOptions({ icon: "/Content/img/icon_green.svg" });
-                                        updateMap = true;
-                                    }
-                                }
-                                $("#image_pushpin" + j).removeClass("alarm");
-
-                                var url = '@Url.Action("Index", "Dashboard")' + "?topNode=" + encodeURI(session.Children[j].Key);
-                                if ("@Model.ChildrenType" == "@typeof(ContosoOpcUaNode)") {
-                                    if (session.Children[j].Visible == true) {
-
-                                        if (session.Children[j].Name == "StartUp Time") {
-                                            if (session.Children[j].Key == "urn:10.100.100.201:s3 opc-ua embedded server") {
-                                                var numberOfHours = Number(session.Children[j].Last);
-                                                var days = Math.floor(numberOfHours / 24);
-                                                var hours = Math.floor(numberOfHours % 24);
-                                                session.Children[j].Last = days.toString() + " days, " + hours.toString() + " hours";
-                                            }
-                                            else {
-                                                var index = session.Children[j].Last.lastIndexOf(".")
-                                                if (index > 0) {
-                                                    session.Children[j].Last = session.Children[j].Last.slice(0, index);
-                                                }
-                                                session.Children[j].Last = session.Children[j].Last.replace("T", " ");
-                                            }
-                                        }
-
-                                        //Servo OnTime
-                                        if (session.Children[j].Name == "Servo OnTime") {
-                                            if (session.Children[j].Key == "urn:10.100.100.201:s3 opc-ua embedded server") {
-                                                var numberOfHours = Number(session.Children[j].Last);
-                                                var days = Math.floor(numberOfHours / 24);
-                                                var hours = Math.floor(numberOfHours % 24);
-                                                session.Children[j].Last = days.toString() + " days, " + hours.toString() + " hours";
-                                            }
-                                            else {
-
-                                                var index = session.Children[j].Last.indexOf("T");
-
-                                                var first = session.Children[j].Last.slice(0, index + 1);
-                                                var second = session.Children[j].Last.slice(index + 1);
-
-                                                session.Children[j].Last = first.replace("P", "").replace("Y", " year, ").replace("M", " month, ").replace("D", " day, ").replace("T", "") + second.replace("H", " hour, ").replace("M", " min").replace("0S", "");
-
-
-                                                //session.Children[j].Last = session.Children[j].Last.replace("P", "").replace("DT", " day, ").replace("H", " hour, ").replace("M", " min").replace("0S", "");
-
-                                            }
-                                        }
-
-                                        //Motion Profile and Device Class
-                                        setEnumValue(session.Children[j]);
-
-                                        var viewClass = "";
-                                        if ($("#dashboard_children_listitem" + j).hasClass("dashboard_children_group_display_none")) {
-                                            viewClass = "dashboard_children_group_display_none";
-                                        }
-
-                                        if (session.Children[j].GroupLabel != null) {
-
-                                            if (session.Children[j].GroupLabel == "Axis ") {
-                                                subLabelTabCount = Number(session.Children[j].GroupLabelLength);
-                                                dashboardLabelClass = "dashboard_children_sublabel_container";
-                                                subLabelTabCount--;
-                                            }
-                                            else
-                                            {
-                                                dashboardLabelClass = "dashboard_children_label_container";
-                                            }
-
-                                            var glyphiconClass = $("#toggleIcon" + j).attr('class');
-
-                                            childrenList += '<div id="dashboard_children_Label' + j + '" class="' + dashboardLabelClass + '">';
-                                            childrenList += '<a role="button" onclick="expand(\'' + j + '\',\'' + session.Children[j].GroupLabelLength + '\');">';
-                                            childrenList += '<i id="toggleIcon' + j + '" class="' + glyphiconClass + '"></i>';
-                                            childrenList += '</a>';
-                                            childrenList += session.Children[j].GroupLabel + session.Children[j].Last + '</div>';
-                                        }
-                                        else {
-                                            if (subLabelTabCount != 0)
-                                            {
-                                                subLabelTabCount--;
-                                                dashboardMarginClass = "dashboard_children_listitem_container_sublabel";
-                                            }
-                                            else
-                                            {
-                                                dashboardMarginClass = "dashboard_children_listitem_container_label";
-                                            }
-
-                                            //childrenList += '<div id="dashboard_children_listitem' + j + '" class="dashboard_children_listitem_container ' + viewClass + ' ' + dashboardMarginClass + ' row" onclick="openContextPanelFromNode(\'' + session.Children[j].Name + '\',\'' + session.Children[j].SubKey + '\');">';
-                                            childrenList += '<div id="dashboard_children_listitem' + j + '" class="dashboard_children_listitem_container ' + viewClass + ' ' + dashboardMarginClass + ' row">';
-                                            //childrenList += '<div id="childrenListListItemStatusText" class="dashboard_children_listitem_status_text col-xs-3 col-lg-3 overflow">' + statusMessage + '</div>';
-                                            childrenList += '<div class="dashboard_children_listitem_location col-xs-5 col-lg-5 overflow">' + session.Children[j].Name + '</div>';
-                                            childrenList += '<div class="dashboard_children_listitem_details col-xs-6 col-lg-6 overflow">' + session.Children[j].Last + ' ' + session.Children[j].Unit + '</div>';
-                                            childrenList += '</div>';
-                                        }
-                                    }
-                                }
-                                else {
-                                    childrenList += '<div id="dashboard_children_listitem' + j + '" class="dashboard_children_listitem_container row" onclick="gotoChildrenNode(\''+url+'\')">';
-                                    //childrenList += '<div id="childrenListListItemStatusText" class="dashboard_children_listitem_status_text col-xs-3 col-lg-3 overflow">' + statusMessage + '</div>';
-                                    childrenList += '<div class="dashboard_children_listitem_location col-xs-5 col-lg-5 overflow">' + session.Children[j].Name + '</div>';
-                                    childrenList += '<div class="dashboard_children_listitem_details col-xs-6 col-lg-6 overflow">' + session.Children[j].Description + '</div>';
-                                    childrenList += '<img class="dashboard-chevron-right" align="right" src="/Content/img/chevron_right.svg">';
-                                    childrenList += '</div>';
-                                }
-                                childrenList += '</div>';
-
-                                //$('#dashboardChildrenList').html(childrenList);
-                                updateTopologyListInformation();
-                                // check if filters are active and apply them
-                                if ($(topologyListInformation.idFilter).is(":visible")) {
-                                    applyFilter(topologyListInformation);
-                                }
-
-                                if (updateMap == true && factoryMap != undefined && factoryMap != null) {
-                                    factoryMap.entities.push(factoryMapPushpin[j]);
-                                }
+        function getDataForOpcUaNode(key, nodeId, aggregationView, chart) {
+            progressCount = 0;
+            var intervalId = setInterval(function() {
+                progressCount = ++progressCount % 10;
+                $("#timeSeriesLoadingText").html("@Resources.AnimationTimeSeriesLoading " + Array(progressCount+1).join("."));
+            }, 800);
+            $.post({
+                url: "/WebMethod/GetDataForOpcUaNode",
+                data: { __RequestVerificationToken: $('[name=__RequestVerificationToken]').val(), key: key, nodeId: nodeId, view: aggregationView },
+                success: function onSuccess(response) {
+                    clearInterval(intervalId);
+                    var obj = JSON.parse(response);
+                    var data = $.trim(obj.YValues).split(",");
+                    var xdata = $.trim(obj.XTime).split(",");
+                    var xlabel = [];
+                    for (var i = 0; i < xdata.length; ++i) {
+                        if (xdata.length < 12) {
+                            if (xdata[i].slice(0,4) != "0001") {
+                                xlabel.push(xdata[i].slice(0,10));
                             }
-                            $('#dashboardChildrenList').html(childrenList);
-
-
-
-                            if (session.Children[0] != undefined) {
-                                $('#name_data').html(session.Children[0].Last);
+                            else {
+                                xlabel.push(xdata[i].slice(0,9) + i.toString());
                             }
-
-                            if (session.Children[1] != undefined) {
-                                if (session.Children[1].Last == true) {
-                                    $('#not_aus_status').removeClass("dashboard_emergengy_stop_false");
-                                    $('#not_aus_status').addClass("dashboard_emergengy_stop_true");
-                                }
-                                else {
-                                    $('#not_aus_status').removeClass("dashboard_emergengy_stop_true");
-                                    $('#not_aus_status').addClass("dashboard_emergengy_stop_false");
-                                }
-
-                                if (session.Children[1].Key == "urn:racer3comau:keba:kecontrolopcua") {
-                                    $('#not_aus_status').removeClass("dashboard_emergengy_stop_true");
-                                    $('#not_aus_status').addClass("dashboard_emergengy_stop_false");
-                                }
-
-                            }
-
-                            if (session.Children[4] != undefined) {
-                                if (session.Children[4].Last == false) {
-                                    $('#under_control_status').removeClass("dashboard_under_control_true");
-                                    $('#under_control_status').addClass("dashboard_under_control_false");
-                                }
-                                else {
-                                    $('#under_control_status').removeClass("dashboard_under_control_false");
-                                    $('#under_control_status').addClass("dashboard_under_control_true");
-                                }
-                            }
-
-                            if (session.Children[2] != undefined) {
-                                switch (session.Children[2].Last) {
-                                    case "0":
-                                        session.Children[2].Last = "Other";
-                                        break;
-                                    case "1":
-                                        session.Children[2].Last = "Manual Reduced Speed";
-                                        break;
-                                    case "2":
-                                        session.Children[2].Last = "Manual High Speed";
-                                        break;
-                                    case "3":
-                                        session.Children[2].Last = "Automatic";
-                                        break;
-                                    case "4":
-                                        session.Children[2].Last = "Automatic External";
-                                        break;
-                                    default:
-                                        break;
-                                }
-
-                                $('#operatingMode_data').html(session.Children[2].Last);
-                            }
-
-                            if (session.Children[3] != undefined) {
-                                if (session.Children[3].Last == true) {
-                                    $('#protective_stop_status').removeClass("dashboard_protective_stop_false");
-                                    $('#protective_stop_status').addClass("dashboard_protective_stop_true");
-                                }
-                                else {
-                                    $('#protective_stop_status').removeClass("dashboard_protective_stop_true");
-                                    $('#protective_stop_status').addClass("dashboard_protective_stop_false");
-                                }
-                            }
-
-                            if ((session.Children[5] != undefined) && (session.Children[5].Last != speedLast)) {
-                                kpi1.load({
-                                    columns: [['Actual', session.Children[5].Last]]
-                                });
-                                speedLast = session.Children[5].Last;
-                            }
-
                         }
                         else {
-                            console.log('ignore the topology list update, since filtering is in active');
+                            xlabel.push(xdata[i].slice(11,16));
                         }
-                    };
-                };
-                $("#childrenListContainer").scrollTop(scrollPosition);
-            };
+                    }
+                    xlabel.unshift("x");
+
+                    if ((obj[0] != "Error") && (obj[0] != "NoTimeSeries")) {
+                        $("#timeSeriesLoadingContainer").hide();
+                        $("#alertDetailTimeSeriesContainer").show();
+                        $("#alertDetailNoTimeSeriesContainer").hide();
+
+                        setChartVerticalSpan(chart, data);
+                        chart.flush();
+                        data.unshift("data");
+                        chart.load({ columns: [xlabel, data] });
+                    } else {
+                        $("#graphHeader").hide();
+                        $("#graph1").hide();
+                        $("#graph2").hide();
+                        $("#graph3").hide();
+                        $("#nodeMsgHeader").show();
+                        $("#nodeMsg").show();
+                        $("#timeSeriesLoadingContainer").hide();
+                        $("#alertDetailTimeSeriesContainer").hide();
+                        $("#alertDetailNoTimeSeriesContainer").show();
+                        if (obj[0] == "Error") {
+                            $("#nodeMsg").text('@Resources.ErrorGetDataForOpcUaNode');
+                            $("#alertDetailNoTimeSeriesValue").html('@Resources.ErrorGetDataForOpcUaNode');
+                        } else {
+                            $("#nodeMsg").text(nodeName + ' = ' + obj[1] + obj[2]);
+                            $("#alertDetailNoTimeSeriesValue").html(nodeName + ' = ' + obj[1] + obj[2]);
+                        }
+                    }
+                },
+                error: function(response) {
+                    console.error("error getting data of OPC UA node: ", response.d, response.responseText);
+                },
+                complete: function() {
+                    clearInterval(intervalId);
+                }
+            });
         }
 
-        //
-        // OEE/KPI data update
-        //
-        telemetry.client.updateSessionOeeKpiData = function (sessionUpdateJson) {
-            sessionUpdate = JSON.parse(sessionUpdateJson);
-            //console.log("sessionUpdate", sessionUpdate);
-            if (sessionUpdate != undefined) {
 
-                @*for (i = 0; i < sessionUpdate.length; i++) {
-                    var session = sessionUpdate[i];
-                    if (session != undefined && session.SessionId != undefined && session.SessionId == "@Model.SessionId" && session.TopNode == "@Model.TopNode.Key") {
 
-                        if (session.OeeOverallLast != undefined && session.OeeOverallLast.OeeOverall != null) {
-                            oeeOverall.load({
-                                columns: [['Actual', session.OeeOverallLast.OeeOverall]]
-                            });
-                        }
-                        if (session.OeeAvailabilityLast != undefined && session.OeeAvailabilityLast.OeeAvailability != null) {
-                            oeeAvailability.load({
-                                columns: [['Actual', session.OeeAvailabilityLast.OeeAvailability]]
-                            });
-                        }
-                        if (session.OeePerformanceLast != undefined && session.OeePerformanceLast.OeePerformance != null) {
-                            oeePerformance.load({
-                                columns: [['Actual', session.OeePerformanceLast.OeePerformance]]
-                            });
-                        }
-                        if (session.OeeQualityLast != undefined && session.OeeQualityLast.OeeQuality != null) {
-                            oeeQuality.load({
-                                columns: [['Actual', session.OeeQualityLast.OeeQuality]]
-                            });
-                        }
-                    };
-                };*@
-            };
+
+        function setEnumValue(children)
+        {
+            if (children.Name == "Device Class") {
+                switch (children.Last) {
+                    case "0":
+                        children.Last = "Other";
+                        break;
+                    case "1":
+                        children.Last = "Articulated Robot";
+                        break;
+                    case "2":
+                        children.Last = "Scara Robot";
+                        break;
+                    case "3":
+                        children.Last = "Cartesian Robot";
+                        break;
+                    case "4":
+                        children.Last = "Spherical Robot";
+                        break;
+                    case "5":
+                        children.Last = "Parallel Robot";
+                        break;
+                    case "6":
+                        children.Last = "Cylindrical Robot";
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else if (children.Name == "Motion Profile") {
+                switch (children.Last) {
+                    case "0":
+                        children.Last = "Other";
+                        break;
+                    case "1":
+                        children.Last = "Rotary";
+                        break;
+                    case "2":
+                        children.Last = "Rotary Endless";
+                        break;
+                    case "3":
+                        children.Last = "Linear";
+                        break;
+                    case "4":
+                        children.Last = "Linear Endless";
+                        break;
+                    default:
+                        break;
+                }
+            }
+            //else if (children.Name == "Operational Mode") {
+            //    switch (children.Last) {
+            //        case "0":
+            //            children.Last = "Other";
+            //            break;
+            //        case "1":
+            //            children.Last = "Manual Reduced Speed";
+            //            break;
+            //        case "2":
+            //            children.Last = "Manual High Speed";
+            //            break;
+            //        case "3":
+            //            children.Last = "Automatic";
+            //            break;
+            //        case "4":
+            //            children.Last = "Automatic External";
+            //            break;
+            //        default:
+            //            break;
+            //    }
+            //}
         }
 
+
         //
-        // Alert data updates
+        //filter
         //
-        telemetry.client.updateSessionAlertData = function (sessionUpdateJson) {
-            sessionUpdate = JSON.parse(sessionUpdateJson);
-            if (sessionUpdate != undefined) {
-                @*var scrollPosition = $("#alertsListContainer").scrollTop();
-                for (var i = 0; i < sessionUpdate.length; i++) {
-                    var session = sessionUpdate[i];
-                    if (session != undefined && session.SessionId != undefined && session.SessionId == "@Model.SessionId" && session.TopNode == "@Model.TopNode.Key") {
-                        // Only update if the alerts filter panel is closed.
-                        if ($("#dashboardFilterAlertContextpanel").hasClass('overlay-close') && session.Alerts != undefined) {
-                            var alertsList = '';
-                            for (var j = 0; j < session.Alerts.length; j++) {
-                                // Update the alert list
-                                if (session.Alerts[j].Status == (@((ushort)ContosoAlertStatus.AlertStatusAcknowledged))) {
-                                    alertsList += '<div class="dashboard_alerts_listitem_container alert_status_acknowledged row" onclick="openContextPanelFromAlert(' + session.Alerts[j].AlertId + ')">';
-                                } else {
-                                    alertsList += '<div class="dashboard_alerts_listitem_container alert_status_active row" onclick="openContextPanelFromAlert(' + session.Alerts[j].AlertId + ')">';
-                                }
-                                alertsList += '<div class="dashboard_alerts_listitem_source overflow row">' + getAlertDescription(session.Alerts[j].Cause) + '</div>';
-                                alertsList += '<div class="dashboard_alerts_listitem_source_details_container row">';
-                                alertsList += '<div class="dashboard_alerts_listitem_source_details overflow col-xs-7">';
-                                var detailsIndex = 1;
-                                var alertLocation = session.Alerts[j].TopologyDetails.reduce(function(acc, val) {
-                                    var result = acc;
-                                    if (val) {
-                                        if (acc) {
-                                            result = acc + '<span>, </span>' + '<span class="dashboard_alerts_details' + detailsIndex + '">' + val + '</span>';
-                                        } else {
-                                            result = '<span class="dashboard_alerts_details' + detailsIndex + '">' + val + '</span>';
-                                        }
-                                    }
-                                    detailsIndex++;
-                                    return result;
-                                }, '');
-                                alertsList += alertLocation;
-                                alertsList += '</div>';
-                                alertsList += '<div id="alertsSourceDetailsTime" class="dashboard_alerts_listitem_source_details_time overflow col-xs-5">' + session.Alerts[j].UxTime + '</div>';
-                                alertsList += '</div>';
-                                alertsList += '</div>';
-                            }
-                            // update the session alert information
-                            alertInformation = session.Alerts;
-                            // update the list and the alert filter information
-                            $('#dashboardAlertsList').html(alertsList);
-                            updateAlertListInformation();
-                            // check if alert filters are active and apply them
-                            if ($(alertListInformation.idFilter).is(":visible")) {
-                                applyFilter(alertListInformation);
+
+        var topologyListInformation = {
+            listItemContainer: $(".dashboard_children_listitem_container"),
+            idAll: $("#allIcon"),
+            idFilter: $("#filterIcon"),
+            filter: [],
+            filterLabels: ['@Model.ChildrenListHeaderStatus', '@Model.ChildrenListHeaderLocation', '@Model.ChildrenListHeaderDetails'],
+
+            listItemDetails:[
+            {
+                elementClass: $(".dashboard_children_listitem_status_text"),
+                selector: $("#topologySelector0"),
+                cookieName: "cookieTopologySelector0",
+                filterSelection: null
+            },
+            {
+                elementClass: $(".dashboard_children_listitem_location"),
+                selector: $("#topologySelector1"),
+                cookieName: "cookieTopologySelector1",
+                filterSelection: null
+            },
+            {
+                elementClass: $(".dashboard_children_listitem_details"),
+                selector: $("#topologySelector2"),
+                cookieName: "cookieTopologySelector2",
+                filterSelection: null
+            }]
+        };
+
+        var alertListInformation = {
+            listItemContainer: $(".dashboard_alerts_listitem_container"),
+            idAll: $("#allIconAlert"),
+            idFilter: $("#filterIconAlert"),
+            filter: [],
+            filterLabels: ['@Resources.AlertDescription','@Model.ChildrenListHeaderLocation', '@Resources.AlertProductionLine', '@Resources.AlertStation', '@Resources.AlertNode'],
+
+            listItemDetails:[
+            {
+                elementClass: $(".dashboard_alerts_listitem_source"),
+                selector: $("#alertSelector0"),
+                cookieName: "cookieAlertSelector0",
+                filterSelection: null
+            },
+            {
+                elementClass: $(".dashboard_alerts_details1"),
+                selector: $("#alertSelector1"),
+                cookieName: "cookieAlertSelector1",
+                filterSelection: null
+            },
+            {
+                elementClass: $(".dashboard_alerts_details2"),
+                selector: $("#alertSelector2"),
+                cookieName: "cookieAlertSelector2",
+                filterSelection: null
+            },
+            {
+                elementClass: $(".dashboard_alerts_details3"),
+                selector: $("#alertSelector3"),
+                cookieName: "cookieAlertSelector3",
+                filterSelection: null
+            },
+            {
+                elementClass: $(".dashboard_alerts_details4"),
+                selector: $("#alertSelector4"),
+                cookieName: "cookieAlertSelector4",
+                filterSelection: null
+            }]
+        };
+
+        $(document).ready(function () {
+            // initialize all context panels to default state closed
+            $("#dashboardContextpanel").addClass("overlay-close").removeClass("overlay-right-open-big");
+            $("#dashboardFilterContextpanel").addClass("overlay-close").removeClass("overlay-right-open-big");
+            $("#dashboardFilterAlertContextpanel").addClass("overlay-close").removeClass("overlay-right-open-big");
+            $("#alertContextpanel").addClass("overlay-close").removeClass("overlay-right-open-big");
+
+            // update filter panel information
+            getCookies(topologyListInformation);
+            getCookies(alertListInformation);
+
+            createListItems(topologyListInformation);
+            createListItems(alertListInformation);
+
+            applyFilter(topologyListInformation);
+            applyFilter(alertListInformation);
+
+            changeHeight();
+            window.onresize = changeHeight;
+
+            jQuery('.scrollbar-macosx').scrollbar();
+
+            //Initialize scalize library
+            $('.scalize').scalize();
+        });
+
+        function updateTopologyListInformation() {
+            topologyListInformation.listItemContainer = $(".dashboard_children_listitem_container");
+            topologyListInformation.listItemDetails[0].elementClass = $(".dashboard_children_listitem_status_text");
+            topologyListInformation.listItemDetails[1].elementClass = $(".dashboard_children_listitem_location");
+            topologyListInformation.listItemDetails[2].elementClass = $(".dashboard_children_listitem_details");
+        }
+
+        function updateAlertListInformation() {
+            alertListInformation.listItemContainer = $(".dashboard_alerts_listitem_container");
+            alertListInformation.listItemDetails[0].elementClass = $(".dashboard_alerts_listitem_source");
+            alertListInformation.listItemDetails[1].elementClass = $(".dashboard_alerts_details1");
+            alertListInformation.listItemDetails[2].elementClass = $(".dashboard_alerts_details2");
+            alertListInformation.listItemDetails[3].elementClass = $(".dashboard_alerts_details3");
+            alertListInformation.listItemDetails[4].elementClass = $(".dashboard_alerts_details4");
+        }
+
+        function getCookies(listObject) {
+
+            //cookies for Factory, productionLine, Station, node filters
+            var cookieSelector = [];
+
+            for (var i = 0; i < listObject.listItemDetails.length; i++) {
+                cookieSelector[i] = Cookies.get(listObject.listItemDetails[i].cookieName + document.URL);
+
+                if (cookieSelector[i] != undefined) {
+                    listObject.listItemDetails[i].filterSelection = cookieSelector[i];
+                }
+            }
+        }
+
+        function setCookies(listObject) {
+            for (var i = 0; i < listObject.listItemDetails.length; i++) {
+                Cookies.set(listObject.listItemDetails[i].cookieName + document.URL, listObject.listItemDetails[i].filterSelection);
+            }
+        }
+
+        function openFilterContextPanel() {
+            updateTopologyListInformation();
+            createListItems(topologyListInformation);
+
+            $("#allIcon").blur();
+            for (var i = 0; i < topologyListInformation.filterLabels.length; i++) {
+                $("#filterLabel" + i).html(topologyListInformation.filterLabels[i]);
+            }
+
+            $("#dashboardFilterContextpanel").removeClass("overlay-close").addClass("overlay-right-open");
+            $(".dashboard-cancel-icon").show();
+            $(".dashboard_contextpanel_select_filter_button").css({ "margin-left": marginLeft });
+        }
+
+        function openFilterAlertsContextPanel() {
+            updateAlertListInformation();
+            createListItems(alertListInformation);
+
+            $("#allIconAlert").blur();
+            for (var i = 0; i < alertListInformation.filterLabels.length; i++) {
+                $("#filterAlertLabel" + i).html(alertListInformation.filterLabels[i]);
+            }
+
+            $("#dashboardFilterAlertContextpanel").removeClass("overlay-close").addClass("overlay-right-open");
+            $(".dashboard-cancel-icon").show();
+            $(".dashboard_contextpanel_select_filter_alert_button").css({ "margin-left": marginLeft });
+        }
+
+        function closeFilterPanel() {
+            $("#dashboardFilterContextpanel").addClass("overlay-close").removeClass("overlay-right-open");
+        }
+
+        function closeFilterAlertsPanel() {
+            $("#dashboardFilterAlertContextpanel").addClass("overlay-close").removeClass("overlay-right-open");
+        }
+
+        function createListItems(listObject) {
+
+            for (var i = 0; i < listObject.listItemDetails.length; i++) {
+
+                var countItems = [];
+                var keys = [];
+
+                listObject.listItemDetails[i].selector.children('option:not(:first)').remove();
+                listObject.listItemDetails[i].selector.selectpicker('refresh');
+
+                listObject.listItemDetails[i].elementClass.each(function (index) { countItems.push($(this).text()); });
+                keys = countItems.filter(function (elem, index, array) { return array.indexOf(elem) === index; });
+
+                for (var j = 0; j < keys.length; j++) {
+                    listObject.listItemDetails[i].selector.append($('<option>', {
+                        value: keys[j],
+                        text: keys[j]
+                    }));
+                    listObject.listItemDetails[i].selector.selectpicker('refresh');
+                }
+
+                //display on the listbox the selected filter
+                if ((listObject.listItemDetails[i].filterSelection != null) && (keys.indexOf(listObject.listItemDetails[i].filterSelection) != -1)) {
+                    listObject.listItemDetails[i].selector.selectpicker('val', listObject.listItemDetails[i].filterSelection);
+                }
+                else {
+                    listObject.listItemDetails[i].selector.selectpicker('val','empty');
+                }
+
+            }
+        }
+
+        function applyFilter(listObject) {
+
+            for (var i = 0; i < listObject.listItemDetails.length; i++) {
+                listObject.filter[i] = listObject.listItemDetails[i].selector.val();
+            }
+
+            //clear all filter before applying a new one
+            for (var i = 0; i < listObject.listItemContainer.length; i++) {
+                listObject.listItemContainer[i].style.display = "";
+            }
+
+            for (var i = 0; i < listObject.filter.length; i++) {
+                listObject.listItemDetails[i].filterSelection = listObject.filter[i];
+            }
+
+            for (var j = 0; j < listObject.filter.length; j++) {
+                if (listObject.filter[j] != "empty") {
+                    for (var i = 0; i < listObject.listItemContainer.length; i++) {
+                        if (listObject.listItemContainer[i].innerHTML.indexOf(listObject.filter[j]) > -1) {
+                            if (listObject.listItemContainer[i].style.display != "none") {
+                                listObject.listItemContainer[i].style.display = "";
                             }
                         } else {
-                            console.log('ignore the alert update, since filtering is in active');
+                            listObject.listItemContainer[i].style.display = "none";
                         }
-                    };
-                }
-                $("#alertsListContainer").scrollTop(scrollPosition);*@
-            }
-        }
-
-        // Start/update the connection
-        $(function () {
-            // Start/update the connection
-            $.connection.hub.start().done(function () { });
-        });
-    });
-
-
-    function setEnumValue(children)
-    {
-        if (children.Name == "Device Class") {
-            switch (children.Last) {
-                case "0":
-                    children.Last = "Other";
-                    break;
-                case "1":
-                    children.Last = "Articulated Robot";
-                    break;
-                case "2":
-                    children.Last = "Scara Robot";
-                    break;
-                case "3":
-                    children.Last = "Cartesian Robot";
-                    break;
-                case "4":
-                    children.Last = "Spherical Robot";
-                    break;
-                case "5":
-                    children.Last = "Parallel Robot";
-                    break;
-                case "6":
-                    children.Last = "Cylindrical Robot";
-                    break;
-                default:
-                    break;
-            }
-        }
-        else if (children.Name == "Motion Profile") {
-            switch (children.Last) {
-                case "0":
-                    children.Last = "Other";
-                    break;
-                case "1":
-                    children.Last = "Rotary";
-                    break;
-                case "2":
-                    children.Last = "Rotary Endless";
-                    break;
-                case "3":
-                    children.Last = "Linear";
-                    break;
-                case "4":
-                    children.Last = "Linear Endless";
-                    break;
-                default:
-                    break;
-            }
-        }
-        //else if (children.Name == "Operational Mode") {
-        //    switch (children.Last) {
-        //        case "0":
-        //            children.Last = "Other";
-        //            break;
-        //        case "1":
-        //            children.Last = "Manual Reduced Speed";
-        //            break;
-        //        case "2":
-        //            children.Last = "Manual High Speed";
-        //            break;
-        //        case "3":
-        //            children.Last = "Automatic";
-        //            break;
-        //        case "4":
-        //            children.Last = "Automatic External";
-        //            break;
-        //        default:
-        //            break;
-        //    }
-        //}
-    }
-
-
-    //
-    //filter
-    //
-
-    var topologyListInformation = {
-        listItemContainer: $(".dashboard_children_listitem_container"),
-        idAll: $("#allIcon"),
-        idFilter: $("#filterIcon"),
-        filter: [],
-        filterLabels: ['@Model.ChildrenListHeaderStatus', '@Model.ChildrenListHeaderLocation', '@Model.ChildrenListHeaderDetails'],
-
-        listItemDetails:[
-        {
-            elementClass: $(".dashboard_children_listitem_status_text"),
-            selector: $("#topologySelector0"),
-            cookieName: "cookieTopologySelector0",
-            filterSelection: null
-        },
-        {
-            elementClass: $(".dashboard_children_listitem_location"),
-            selector: $("#topologySelector1"),
-            cookieName: "cookieTopologySelector1",
-            filterSelection: null
-        },
-        {
-            elementClass: $(".dashboard_children_listitem_details"),
-            selector: $("#topologySelector2"),
-            cookieName: "cookieTopologySelector2",
-            filterSelection: null
-        }]
-    };
-
-    var alertListInformation = {
-        listItemContainer: $(".dashboard_alerts_listitem_container"),
-        idAll: $("#allIconAlert"),
-        idFilter: $("#filterIconAlert"),
-        filter: [],
-        filterLabels: ['@Resources.AlertDescription','@Model.ChildrenListHeaderLocation', '@Resources.AlertProductionLine', '@Resources.AlertStation', '@Resources.AlertNode'],
-
-        listItemDetails:[
-        {
-            elementClass: $(".dashboard_alerts_listitem_source"),
-            selector: $("#alertSelector0"),
-            cookieName: "cookieAlertSelector0",
-            filterSelection: null
-        },
-        {
-            elementClass: $(".dashboard_alerts_details1"),
-            selector: $("#alertSelector1"),
-            cookieName: "cookieAlertSelector1",
-            filterSelection: null
-        },
-        {
-            elementClass: $(".dashboard_alerts_details2"),
-            selector: $("#alertSelector2"),
-            cookieName: "cookieAlertSelector2",
-            filterSelection: null
-        },
-        {
-            elementClass: $(".dashboard_alerts_details3"),
-            selector: $("#alertSelector3"),
-            cookieName: "cookieAlertSelector3",
-            filterSelection: null
-        },
-        {
-            elementClass: $(".dashboard_alerts_details4"),
-            selector: $("#alertSelector4"),
-            cookieName: "cookieAlertSelector4",
-            filterSelection: null
-        }]
-    };
-
-    $(document).ready(function () {
-        // initialize all context panels to default state closed
-        $("#dashboardContextpanel").addClass("overlay-close").removeClass("overlay-right-open-big");
-        $("#dashboardFilterContextpanel").addClass("overlay-close").removeClass("overlay-right-open-big");
-        $("#dashboardFilterAlertContextpanel").addClass("overlay-close").removeClass("overlay-right-open-big");
-        $("#alertContextpanel").addClass("overlay-close").removeClass("overlay-right-open-big");
-
-        // update filter panel information
-        getCookies(topologyListInformation);
-        getCookies(alertListInformation);
-
-        createListItems(topologyListInformation);
-        createListItems(alertListInformation);
-
-        applyFilter(topologyListInformation);
-        applyFilter(alertListInformation);
-
-        changeHeight();
-        window.onresize = changeHeight;
-
-        jQuery('.scrollbar-macosx').scrollbar();
-
-        //Initialize scalize library
-        $('.scalize').scalize();
-    });
-
-    function updateTopologyListInformation() {
-        topologyListInformation.listItemContainer = $(".dashboard_children_listitem_container");
-        topologyListInformation.listItemDetails[0].elementClass = $(".dashboard_children_listitem_status_text");
-        topologyListInformation.listItemDetails[1].elementClass = $(".dashboard_children_listitem_location");
-        topologyListInformation.listItemDetails[2].elementClass = $(".dashboard_children_listitem_details");
-    }
-
-    function updateAlertListInformation() {
-        alertListInformation.listItemContainer = $(".dashboard_alerts_listitem_container");
-        alertListInformation.listItemDetails[0].elementClass = $(".dashboard_alerts_listitem_source");
-        alertListInformation.listItemDetails[1].elementClass = $(".dashboard_alerts_details1");
-        alertListInformation.listItemDetails[2].elementClass = $(".dashboard_alerts_details2");
-        alertListInformation.listItemDetails[3].elementClass = $(".dashboard_alerts_details3");
-        alertListInformation.listItemDetails[4].elementClass = $(".dashboard_alerts_details4");
-    }
-
-    function getCookies(listObject) {
-
-        //cookies for Factory, productionLine, Station, node filters
-        var cookieSelector = [];
-
-        for (var i = 0; i < listObject.listItemDetails.length; i++) {
-            cookieSelector[i] = Cookies.get(listObject.listItemDetails[i].cookieName + document.URL);
-
-            if (cookieSelector[i] != undefined) {
-                listObject.listItemDetails[i].filterSelection = cookieSelector[i];
-            }
-        }
-    }
-
-    function setCookies(listObject) {
-        for (var i = 0; i < listObject.listItemDetails.length; i++) {
-            Cookies.set(listObject.listItemDetails[i].cookieName + document.URL, listObject.listItemDetails[i].filterSelection);
-        }
-    }
-
-    function openFilterContextPanel() {
-        updateTopologyListInformation();
-        createListItems(topologyListInformation);
-
-        $("#allIcon").blur();
-        for (var i = 0; i < topologyListInformation.filterLabels.length; i++) {
-            $("#filterLabel" + i).html(topologyListInformation.filterLabels[i]);
-        }
-
-        $("#dashboardFilterContextpanel").removeClass("overlay-close").addClass("overlay-right-open");
-        $(".dashboard-cancel-icon").show();
-        $(".dashboard_contextpanel_select_filter_button").css({ "margin-left": marginLeft });
-    }
-
-    function openFilterAlertsContextPanel() {
-        updateAlertListInformation();
-        createListItems(alertListInformation);
-
-        $("#allIconAlert").blur();
-        for (var i = 0; i < alertListInformation.filterLabels.length; i++) {
-            $("#filterAlertLabel" + i).html(alertListInformation.filterLabels[i]);
-        }
-
-        $("#dashboardFilterAlertContextpanel").removeClass("overlay-close").addClass("overlay-right-open");
-        $(".dashboard-cancel-icon").show();
-        $(".dashboard_contextpanel_select_filter_alert_button").css({ "margin-left": marginLeft });
-    }
-
-    function closeFilterPanel() {
-        $("#dashboardFilterContextpanel").addClass("overlay-close").removeClass("overlay-right-open");
-    }
-
-    function closeFilterAlertsPanel() {
-        $("#dashboardFilterAlertContextpanel").addClass("overlay-close").removeClass("overlay-right-open");
-    }
-
-    function createListItems(listObject) {
-
-        for (var i = 0; i < listObject.listItemDetails.length; i++) {
-
-            var countItems = [];
-            var keys = [];
-
-            listObject.listItemDetails[i].selector.children('option:not(:first)').remove();
-            listObject.listItemDetails[i].selector.selectpicker('refresh');
-
-            listObject.listItemDetails[i].elementClass.each(function (index) { countItems.push($(this).text()); });
-            keys = countItems.filter(function (elem, index, array) { return array.indexOf(elem) === index; });
-
-            for (var j = 0; j < keys.length; j++) {
-                listObject.listItemDetails[i].selector.append($('<option>', {
-                    value: keys[j],
-                    text: keys[j]
-                }));
-                listObject.listItemDetails[i].selector.selectpicker('refresh');
-            }
-
-            //display on the listbox the selected filter
-            if ((listObject.listItemDetails[i].filterSelection != null) && (keys.indexOf(listObject.listItemDetails[i].filterSelection) != -1)) {
-                listObject.listItemDetails[i].selector.selectpicker('val', listObject.listItemDetails[i].filterSelection);
-            }
-            else {
-                listObject.listItemDetails[i].selector.selectpicker('val','empty');
-            }
-
-        }
-    }
-
-    function applyFilter(listObject) {
-
-        for (var i = 0; i < listObject.listItemDetails.length; i++) {
-            listObject.filter[i] = listObject.listItemDetails[i].selector.val();
-        }
-
-        //clear all filter before applying a new one
-        for (var i = 0; i < listObject.listItemContainer.length; i++) {
-            listObject.listItemContainer[i].style.display = "";
-        }
-
-        for (var i = 0; i < listObject.filter.length; i++) {
-            listObject.listItemDetails[i].filterSelection = listObject.filter[i];
-        }
-
-        for (var j = 0; j < listObject.filter.length; j++) {
-            if (listObject.filter[j] != "empty") {
-                for (var i = 0; i < listObject.listItemContainer.length; i++) {
-                    if (listObject.listItemContainer[i].innerHTML.indexOf(listObject.filter[j]) > -1) {
-                        if (listObject.listItemContainer[i].style.display != "none") {
-                            listObject.listItemContainer[i].style.display = "";
-                        }
-                    } else {
-                        listObject.listItemContainer[i].style.display = "none";
                     }
                 }
             }
+
+            //show/hide filter icon
+            if (listObject.filter.some(function (filt) { return filt != "empty" })) {
+                listObject.idAll.hide();
+                listObject.idFilter.show();
+            }
+
+            if (listObject.filter.every(function (filt) { return filt == "empty" })) {
+                listObject.idAll.show();
+                listObject.idFilter.hide();
+            }
+            setCookies(listObject);
+            closeFilterPanel();
+            closeFilterAlertsPanel();
         }
 
-        //show/hide filter icon
-        if (listObject.filter.some(function (filt) { return filt != "empty" })) {
-            listObject.idAll.hide();
-            listObject.idFilter.show();
-        }
+        function clearFilter(listObject) {
 
-        if (listObject.filter.every(function (filt) { return filt == "empty" })) {
+            //hide filter icon
             listObject.idAll.show();
             listObject.idFilter.hide();
+
+            //show all data in the list
+            for (var i = 0; i < listObject.listItemContainer.length; i++) {
+                listObject.listItemContainer[i].style.display = "";
+            }
+
+            for (var i = 0; i < listObject.listItemDetails.length; i++) {
+                listObject.listItemDetails[i].selector.selectpicker('val','empty');
+                listObject.listItemDetails[i].filterSelection = "empty";
+            }
+            setCookies(listObject);
+            closeFilterPanel();
+            closeFilterAlertsPanel();
         }
-        setCookies(listObject);
-        closeFilterPanel();
-        closeFilterAlertsPanel();
-    }
-
-    function clearFilter(listObject) {
-
-        //hide filter icon
-        listObject.idAll.show();
-        listObject.idFilter.hide();
-
-        //show all data in the list
-        for (var i = 0; i < listObject.listItemContainer.length; i++) {
-            listObject.listItemContainer[i].style.display = "";
-        }
-
-        for (var i = 0; i < listObject.listItemDetails.length; i++) {
-            listObject.listItemDetails[i].selector.selectpicker('val','empty');
-            listObject.listItemDetails[i].filterSelection = "empty";
-        }
-        setCookies(listObject);
-        closeFilterPanel();
-        closeFilterAlertsPanel();
-    }
-</script>
+    </script>
+}

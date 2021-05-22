@@ -2,6 +2,7 @@
 using Microsoft.Azure.EventHubs.Processor;
 using Newtonsoft.Json;
 using Opc.Ua;
+using OpcUaWebDashboard.Controllers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -155,6 +156,13 @@ namespace OpcUaWebDashboard
                     Trace.TraceError($"Exception '{e.Message}' processing message '{message}'");
                 }
             }
+
+            string signalRMessage = string.Empty;
+            foreach(string key in ReceivedDataValues.Keys)
+            {
+                signalRMessage += key + ": " + ReceivedDataValues[key].Value.ToString() + " ";
+            }
+            DashboardController.UpdateStatus(signalRMessage);
         }
     }
 }
