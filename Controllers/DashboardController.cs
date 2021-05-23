@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Newtonsoft.Json;
 using OpcUaWebDashboard.Models;
-using OpcUaWebDashboard.Properties;
-using System;
 
 namespace OpcUaWebDashboard.Controllers
 {
@@ -29,14 +28,9 @@ namespace OpcUaWebDashboard.Controllers
         /// Sends the message to all connected clients as status indication
         /// </summary>
         /// <param name="message">Text to show on web page</param>
-        public static  void UpdateStatus(string message)
+        public static void UpdateStatus(string label, float value)
         {
-            if (string.IsNullOrWhiteSpace(message))
-            {
-                throw new ArgumentException(nameof(message));
-            }
-
-            _hubContext.Clients.All.SendAsync("addNewMessageToPage", null, message).Wait();
+            _hubContext.Clients.All.SendAsync("addNewMessageToPage", label, value).Wait();
         }
 
         public ActionResult Privacy()
@@ -46,16 +40,7 @@ namespace OpcUaWebDashboard.Controllers
 
         public ActionResult Index()
         {
-            DashboardModel dashboardModel = new DashboardModel();
-            dashboardModel.SessionId = HttpContext.Session.Id;
-            dashboardModel.ShopfloorType = "Simulation";
-            dashboardModel.Children = MessageProcessor.ReceivedDataValues;
-            dashboardModel.ChildrenContainerHeader = Resources.ChildrenOpcUaNodeListContainerHeaderPostfix;
-            dashboardModel.ChildrenListHeaderDetails = Resources.ChildrenOpcUaNodeListListHeaderDetails;
-            dashboardModel.ChildrenListHeaderLocation = Resources.ChildrenOpcUaNodeListListHeaderLocation;
-            dashboardModel.ChildrenListHeaderStatus = Resources.ChildrenOpcUaNodeListListHeaderStatus;
-
-            return View(dashboardModel);
+            return View("Index");
         }
     }
 }

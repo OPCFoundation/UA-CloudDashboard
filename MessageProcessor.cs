@@ -91,6 +91,8 @@ namespace OpcUaWebDashboard
                     {
                         ReceivedDataValues.Add(nodeId, message.Payload[nodeId]);
                     }
+
+                     DashboardController.UpdateStatus(nodeId, float.Parse(message.Payload[nodeId].Value.ToString()));
                 }
             }
         }
@@ -156,13 +158,6 @@ namespace OpcUaWebDashboard
                     Trace.TraceError($"Exception '{e.Message}' processing message '{message}'");
                 }
             }
-
-            string signalRMessage = string.Empty;
-            foreach(string key in ReceivedDataValues.Keys)
-            {
-                signalRMessage += key + ": " + ReceivedDataValues[key].Value.ToString() + " ";
-            }
-            DashboardController.UpdateStatus(signalRMessage);
         }
     }
 }
