@@ -90,9 +90,10 @@ namespace OpcUaWebDashboard
                     else
                     {
                         ReceivedDataValues.Add(nodeId, message.Payload[nodeId]);
+                        DashboardController.AddDatasetToChart(nodeId);
                     }
 
-                     DashboardController.UpdateStatus(nodeId, float.Parse(message.Payload[nodeId].Value.ToString()));
+                    DashboardController.AddDataToChart(nodeId, message.Payload[nodeId].SourceTimestamp.ToString(), float.Parse(message.Payload[nodeId].Value.ToString()));
                 }
             }
         }

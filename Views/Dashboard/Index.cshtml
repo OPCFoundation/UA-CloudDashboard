@@ -15,28 +15,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
 
-            var values = [];
-            var labels = [];
-
-            values.length = 100;
-            labels.length = 100;
-
-            values.fill(0);
-            labels.fill(0);
-
             var myChart = new Chart(document.getElementById('myChart'),
                 {
                     type: 'line',
                     responsive: true,
-                    data:
-                    {
-                        labels: labels,
-                        datasets: [{
-                             data: values,
-                            borderColor: 'rgba(0, 0, 255, 1)',
-                            borderWidth: 3
-                        }]
-                    },
                     options:
                     {
                         scales:
@@ -57,11 +39,63 @@
                 .configureLogging(signalR.LogLevel.Information)
                 .build();
 
-            // create a function that the hub can call back to display messages
-            connection.on("addNewMessageToPage", function(label, value) {
-                values.push(value);
-                values.shift();
-                //labels.fill(label);
+            // add dataset function
+            connection.on("addDataSetToChart", function(name)
+            {
+                const data = myChart.data;
+                const dsColor = Utils.namedColor(chart.data.datasets.length);
+                
+                const newDataset = {
+                    label: name,
+                    backgroundColor: Utils.transparentize(dsColor, 0.5),
+                    borderColor: dsColor
+                };
+                
+                chart.data.datasets.push(newDataset);
+                
+                chart.update();
+            });
+
+            // add data function
+            connection.on("addDataToChart", function(dataset, label, value)
+            {
+                bool found = false;
+                for (var i = 0; i < myChart.data.labels.length; i++)
+                {
+                    if (myChart.data.labels[i] == label)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found)
+                {
+                    myChart.data.labels.push(label);
+                }
+
+                if (myChart.data.labels.length > 100)
+                {
+                    myChart.data.labels.shift();
+                }
+                
+                break;
+                
+                for (var i = 0; i < myChart.data.datasets.length; i++)
+                {
+                    if (myChart.data.datasets[i].label == name)
+                    {
+                        myChart.data.datasets[i].data.push(value);
+                        
+                        if (myChart.data.datasets[i].data.length > 100)
+                        {
+                            myChart.data.datasets[i].data.shift();
+                        }
+                        
+                        break;
+                    }
+                }
+                
                 myChart.update();
             });
 

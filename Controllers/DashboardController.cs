@@ -7,28 +7,22 @@ namespace OpcUaWebDashboard.Controllers
     {
     }
 
-    /// <summary>
-    /// A Controller for Dashboard-related views.
-    /// </summary>
     public class DashboardController : Controller
     {
         private static IHubContext<StatusHub> _hubContext;
 
-        /// <summary>
-        /// Initializes a new instance of the DashboardController class.
-        /// </summary>
         public DashboardController(IHubContext<StatusHub> hubContext)
         {
             _hubContext = hubContext;
         }
 
-        /// <summary>
-        /// Sends the message to all connected clients as status indication
-        /// </summary>
-        /// <param name="message">Text to show on web page</param>
-        public static void UpdateStatus(string label, float value)
+        public static void AddDatasetToChart(string name)
         {
-            _hubContext.Clients.All.SendAsync("addNewMessageToPage", label, value).Wait();
+            _hubContext.Clients.All.SendAsync("addDatasetToChart", name).Wait();
+        }
+        public static void AddDataToChart(string dataset, string label, float value)
+        {
+            _hubContext.Clients.All.SendAsync("addDataToChart", dataset, label, value).Wait();
         }
 
         public ActionResult Privacy()
