@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Newtonsoft.Json;
-using OpcUaWebDashboard.Models;
 
 namespace OpcUaWebDashboard.Controllers
 {
