@@ -18,11 +18,11 @@ namespace OpcUaWebDashboard.Controllers
 
         public static void AddDatasetToChart(string name)
         {
-            _hubContext.Clients.All.SendAsync("addDatasetToChart", name).Wait();
+            _hubContext.Clients.All.SendAsync("addDatasetToChart", name).GetAwaiter().GetResult();
         }
         public static void AddDataToChart(string dataset, string label, float value)
         {
-            _hubContext.Clients.All.SendAsync("addDataToChart", dataset, label, value).Wait();
+            _hubContext.Clients.All.SendAsync("addDataToChart", dataset, label, value).GetAwaiter().GetResult();
         }
 
         public ActionResult Privacy()

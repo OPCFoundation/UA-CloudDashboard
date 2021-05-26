@@ -9,29 +9,39 @@
     <canvas id="myChart"></canvas>
 </div>
 
-
 @section scripts {
-    <script src="~/lib/Chart.js/chart.js"></script>>
+    <script src="~/lib/Chart.js/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
 
-            var myChart = new Chart(document.getElementById('myChart'),
-                {
-                    type: 'line',
+            const config = {
+                type: 'line',
+                options: {
                     responsive: true,
-                    options:
-                    {
-                        scales:
+                    plugins: {
+                      legend: {
+                        position: 'top',
+                      },
+                      title: {
+                        display: true,
+                        text: 'OPC UA PubSub telemetry data'
+                      }
+                },
+                scales: {
+                     xAxis: [{
+                        type: 'timeseries'
+                    }],
+                    yAxis: [{
+                        ticks:
                         {
-                            yAxes: [{
-                                ticks:
-                                {
-                                    beginAtZero: true
-                                }
-                            }]
+                            beginAtZero: true
                         }
-                    }
-                });
+                    }]
+                }
+              }
+            };
+
+            var myChart = new Chart(document.getElementById('myChart'), config);
 
             // connection to SignalR hub
             const connection = new signalR.HubConnectionBuilder()
@@ -39,27 +49,48 @@
                 .configureLogging(signalR.LogLevel.Information)
                 .build();
 
+            const CHART_COLORS = {
+                red: 'rgb(255, 0, 0)',
+                magenta: 'rgb(255, 0, 255)',
+                yellow: 'rgb(255, 255, 0)',
+                green: 'rgb(0, 255, 0)',
+                blue: 'rgb(0, 0, 255)',
+                cyan: 'rgb(0, 255, 255)',
+                grey: 'rgb(200, 200, 200)',
+                black: 'rgb(0, 0, 0)'
+            };
+
+            const NAMED_COLORS = [
+                CHART_COLORS.red,
+                CHART_COLORS.magenta,
+                CHART_COLORS.yellow,
+                CHART_COLORS.green,
+                CHART_COLORS.blue,
+                CHART_COLORS.cyan,
+                CHART_COLORS.grey,
+                CHART_COLORS.black
+            ];
+
+            function namedColor(index) {
+                return NAMED_COLORS[index % NAMED_COLORS.length];
+            }
+
             // add dataset function
-            connection.on("addDataSetToChart", function(name)
-            {
-                const data = myChart.data;
-                const dsColor = Utils.namedColor(chart.data.datasets.length);
-                
+            connection.on("addDatasetToChart", function(name) {
+                const dsColor = namedColor(myChart.data.datasets.length);
                 const newDataset = {
                     label: name,
-                    backgroundColor: Utils.transparentize(dsColor, 0.5),
-                    borderColor: dsColor
+                    borderColor: dsColor,
+                    borderwidth: 3
                 };
                 
-                chart.data.datasets.push(newDataset);
-                
-                chart.update();
+                myChart.data.datasets.push(newDataset);
+                myChart.update();
             });
 
             // add data function
-            connection.on("addDataToChart", function(dataset, label, value)
-            {
-                bool found = false;
+            connection.on("addDataToChart", function(dataset, label, value) {
+                var found = false;
                 for (var i = 0; i < myChart.data.labels.length; i++)
                 {
                     if (myChart.data.labels[i] == label)
@@ -79,20 +110,20 @@
                     myChart.data.labels.shift();
                 }
                 
-                break;
-                
-                for (var i = 0; i < myChart.data.datasets.length; i++)
+                for (var j = 0; j < myChart.data.datasets.length; j++)
                 {
-                    if (myChart.data.datasets[i].label == name)
+                    if (myChart.data.datasets[j].label == dataset)
                     {
-                        myChart.data.datasets[i].data.push(value);
-                        
-                        if (myChart.data.datasets[i].data.length > 100)
-                        {
-                            myChart.data.datasets[i].data.shift();
-                        }
-                        
-                        break;
+                        myChart.data.datasets[j].data.push(value);
+                    }
+                    else
+                    {
+                        myChart.data.datasets[j].data.push(NaN);
+                    }
+
+                    if (myChart.data.datasets[j].data.length > 100)
+                    {
+                        myChart.data.datasets[j].data.shift();
                     }
                 }
                 
@@ -100,6 +131,7 @@
             });
 
             connection.start();
+
         });
     </script>
 }
