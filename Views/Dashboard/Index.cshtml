@@ -12,8 +12,8 @@
 @section scripts {
     <script src="~/lib/Chart.js/chart.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-
+        document.addEventListener('DOMContentLoaded', function ()
+        {
             const config = {
                 type: 'line',
                 options: {
@@ -76,35 +76,36 @@
             }
 
             // add dataset function
-            connection.on("addDatasetToChart", function(name) {
-                const dsColor = namedColor(myChart.data.datasets.length);
-                const newDataset = {
-                    label: name,
-                    borderColor: dsColor,
-                    borderwidth: 3
-                };
-                
-                myChart.data.datasets.push(newDataset);
-                myChart.update();
-            });
-
-            // add data function
-            connection.on("addDataToChart", function(dataset, label, value) {
+            connection.on("addDatasetToChart", function(name)
+            {
                 var found = false;
-                for (var i = 0; i < myChart.data.labels.length; i++)
+                for (var j = 0; j < myChart.data.datasets.length; j++)
                 {
-                    if (myChart.data.labels[i] == label)
+                    if (myChart.data.datasets[j].label == name)
                     {
                         found = true;
                         break;
                     }
                 }
-                
+
                 if (!found)
                 {
-                    myChart.data.labels.push(label);
+                    const dsColor = namedColor(myChart.data.datasets.length);
+                    const newDataset = {
+                        label: name,
+                        borderColor: dsColor,
+                        borderwidth: 3
+                    };
+                    myChart.data.datasets.push(newDataset);
+                
+                    myChart.update();
                 }
+            });
 
+            // add data function
+            connection.on("addDataToChart", function(timestamp, value)
+            {
+                myChart.data.labels.push(timestamp);
                 if (myChart.data.labels.length > 100)
                 {
                     myChart.data.labels.shift();
@@ -112,15 +113,7 @@
                 
                 for (var j = 0; j < myChart.data.datasets.length; j++)
                 {
-                    if (myChart.data.datasets[j].label == dataset)
-                    {
-                        myChart.data.datasets[j].data.push(value);
-                    }
-                    else
-                    {
-                        myChart.data.datasets[j].data.push(NaN);
-                    }
-
+                    myChart.data.datasets[j].data.push(value);
                     if (myChart.data.datasets[j].data.length > 100)
                     {
                         myChart.data.datasets[j].data.shift();

@@ -1,9 +1,13 @@
-﻿namespace OpcUaWebDashboard.Models
+﻿using System;
+
+namespace OpcUaWebDashboard.Models
 {
     public class SignalRModel
     {
-        public string[] Labels { get; set; }
+        public string NodeID { get; set; }
 
-        public int[] Values { get; set; }
+        public float Value { get; set; }
+
+        public DateTime TimeStamp { get; set; }
     }
 }

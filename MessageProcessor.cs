@@ -3,6 +3,7 @@ using Microsoft.Azure.EventHubs.Processor;
 using Newtonsoft.Json;
 using Opc.Ua;
 using OpcUaWebDashboard.Controllers;
+using OpcUaWebDashboard.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -47,13 +48,10 @@ namespace OpcUaWebDashboard
     {
         private Stopwatch _checkpointStopwatch;
         private const double _checkpointPeriodInMinutes = 5;
-
-        public static Dictionary<string, DataValue> ReceivedDataValues = new Dictionary<string, DataValue>();
-
+        private List<string> _nodeIDs = new List<string>();
+        
         public Task OpenAsync(PartitionContext context)
         {
-            ReceivedDataValues.Clear();
-
             // get number of messages between checkpoints
             _checkpointStopwatch = new Stopwatch();
             _checkpointStopwatch.Start();
@@ -78,22 +76,90 @@ namespace OpcUaWebDashboard
 
         private void ProcessPublisherMessage(OpcUaPubSubJsonMessage publisherMessage)
         {
+            List<SignalRModel> receivedDataItems = new List<SignalRModel>();
+            _nodeIDs.Clear();
+
+            // unbatch the received data
             foreach (Message message in publisherMessage.Messages)
             {
                 foreach (string nodeId in message.Payload.Keys)
                 {
-                    // Update to last value or add it if we see it for the first time
-                    if (ReceivedDataValues.ContainsKey(nodeId))
+                    // make sure we have it in our list of nodeIDs, which form the basis of our individual time series datasets
+                    if (!_nodeIDs.Contains(nodeId))
                     {
-                        ReceivedDataValues[nodeId] = message.Payload[nodeId];
-                    }
-                    else
-                    {
-                        ReceivedDataValues.Add(nodeId, message.Payload[nodeId]);
+                        _nodeIDs.Add(nodeId);
                         DashboardController.AddDatasetToChart(nodeId);
                     }
 
-                    DashboardController.AddDataToChart(nodeId, message.Payload[nodeId].SourceTimestamp.ToString(), float.Parse(message.Payload[nodeId].Value.ToString()));
+                    // try to add to our list of received values
+                    try
+                    {
+                        SignalRModel newItem = new SignalRModel {
+                            NodeID = nodeId,
+                            TimeStamp = message.Payload[nodeId].SourceTimestamp,
+                            Value = float.Parse(message.Payload[nodeId].Value.ToString())
+                        };
+                        receivedDataItems.Add(newItem);
+                    }
+                    catch (Exception)
+                    {
+                        // ignore this item
+                    }
+                }
+            }
+
+            // group messages by timestamp in nodeID,value pairs
+            List<Tuple<string,float>> currentValues = new List<Tuple<string,float>>();
+
+            // add first entry
+            if (receivedDataItems.Count > 0)
+            {
+                DateTime currentTimestamp = receivedDataItems[0].TimeStamp;
+                currentValues.Add(new Tuple<string, float>(receivedDataItems[0].NodeID, receivedDataItems[0].Value));
+                receivedDataItems.RemoveAt(0);
+
+
+                // add the rest, per timestamp
+                while (receivedDataItems.Count > 0)
+                {
+                    for (int i = 0; i < receivedDataItems.Count; i++)
+                    {
+                        if (receivedDataItems[i].TimeStamp == currentTimestamp)
+                        {
+                            currentValues.Add(new Tuple<string, float>(receivedDataItems[i].NodeID, receivedDataItems[i].Value));
+                            receivedDataItems.RemoveAt(i);
+                            i--;
+                        }
+                    }
+
+                    // fill the blank datasets for this timestamp with nulls
+                    float[] values = new float[_nodeIDs.Count];
+                    for (int i = 0; i < values.Length; i++)
+                    {
+                        // init to NaN
+                        values[i] = float.NaN;
+
+                        // check if we have a real value
+                        foreach (Tuple<string, float> item in currentValues)
+                        {
+                            if (item.Item1 == _nodeIDs[i])
+                            {
+                                values[i] = item.Item2;
+                                break;
+                            }
+                        }
+                    }
+
+                    // add entry for current timestamp to chart
+                    DashboardController.AddDataToChart(currentTimestamp.ToString(), values);
+
+                    // add next entry
+                    if (receivedDataItems.Count > 0)
+                    {
+                        currentTimestamp = receivedDataItems[0].TimeStamp;
+                        currentValues.Add(new Tuple<string, float>(receivedDataItems[0].NodeID, receivedDataItems[0].Value));
+                        receivedDataItems.RemoveAt(0);
+                    }
                 }
             }
         }

@@ -20,9 +20,9 @@ namespace OpcUaWebDashboard.Controllers
         {
             _hubContext.Clients.All.SendAsync("addDatasetToChart", name).GetAwaiter().GetResult();
         }
-        public static void AddDataToChart(string dataset, string label, float value)
+        public static void AddDataToChart(string timestamp, float[] values)
         {
-            _hubContext.Clients.All.SendAsync("addDataToChart", dataset, label, value).GetAwaiter().GetResult();
+            _hubContext.Clients.All.SendAsync("addDataToChart", timestamp, values).GetAwaiter().GetResult();
         }
 
         public ActionResult Privacy()
