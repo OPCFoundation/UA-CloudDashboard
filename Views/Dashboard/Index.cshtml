@@ -4,10 +4,14 @@
 @{
     ViewBag.Title = @Resources.Dashboard;
 }
-
-<div class="chart-container" width="600" height="400">
-    <canvas id="myChart"></canvas>
-</div>
+<p>
+    <div class="chart-container" width="600" height="400">
+        <canvas id="myChart"></canvas>
+    </div>
+</p>
+<p>
+    <div id="table" width="600">Please wait while we collect telemetry data from IoT Hub...</div>
+</p>
 
 @section scripts {
     <script src="~/lib/Chart.js/chart.js"></script>
@@ -135,6 +139,12 @@
                 }
                 
                 myChart.update();
+            });
+
+            // add table function
+            connection.on("addTable", function(html)
+            {
+                $('#table').html(html);
             });
 
             connection.start();

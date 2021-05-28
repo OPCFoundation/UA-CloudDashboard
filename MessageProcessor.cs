@@ -1,7 +1,6 @@
 ﻿using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
 using Newtonsoft.Json;
-using Opc.Ua;
 using OpcUaWebDashboard.Controllers;
 using OpcUaWebDashboard.Models;
 using System;
@@ -12,35 +11,6 @@ using System.Threading.Tasks;
 
 namespace OpcUaWebDashboard
 {
-    public class OpcUaPubSubJsonMessage
-    {
-        public string MessageId { get; set; }
-
-        public string MessageType { get; set; }
-
-        public string PublisherId { get; set; }
-
-        public string DataSetClassId { get; set; }
-
-        public List<Message> Messages { get; set; }
-    }
-
-    public class Message
-    {
-        public string DataSetWriterId { get; set; }
-
-        public MetaDataVersion MetaDataVersion { get; set; }
-
-        public Dictionary<string, DataValue> Payload { get; set; }
-    }
-
-    public class MetaDataVersion
-    {
-        public int MajorVersion { get; set; }
-
-        public int MinorVersion { get; set; }
-    }
-
     /// <summary>
     /// This class processes all ingested data into IoTHub.
     /// </summary>
@@ -77,6 +47,7 @@ namespace OpcUaWebDashboard
         private void ProcessPublisherMessage(OpcUaPubSubJsonMessage publisherMessage)
         {
             List<SignalRModel> receivedDataItems = new List<SignalRModel>();
+            List<Tuple<string, string, string>> tableEntries = new List<Tuple<string, string, string>>();
             _nodeIDs.Clear();
 
             // unbatch the received data
@@ -105,8 +76,18 @@ namespace OpcUaWebDashboard
                     {
                         // ignore this item
                     }
+
+                    // add item to our table entries
+                    tableEntries.Add(new Tuple<string, string, string>(
+                        nodeId,
+                        message.Payload[nodeId].Value.ToString(),
+                        message.Payload[nodeId].SourceTimestamp.ToString()
+                    ));
                 }
             }
+
+            // create table
+            DashboardController.CreateTableForTelemetry(tableEntries);
 
             // group messages by timestamp in nodeID,value pairs
             List<Tuple<string,float>> currentValues = new List<Tuple<string,float>>();
