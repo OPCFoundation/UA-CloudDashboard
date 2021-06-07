@@ -7,16 +7,16 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build
 WORKDIR /src
-COPY ["UANodesetWebViewer.csproj", "."]
-RUN dotnet restore "./UANodesetWebViewer.csproj"
+COPY ["OpcUaWebDashboard.csproj", "."]
+RUN dotnet restore "./OpcUaWebDashboard.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "UANodesetWebViewer.csproj" -c Release -o /app/build
+RUN dotnet build "OpcUaWebDashboard.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "UANodesetWebViewer.csproj" -c Release -o /app/publish
+RUN dotnet publish "OpcUaWebDashboard.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "UANodesetWebViewer.dll"]
+ENTRYPOINT ["dotnet", "OpcUaWebDashboard.dll"]
