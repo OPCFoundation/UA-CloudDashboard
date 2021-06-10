@@ -52,14 +52,14 @@ namespace OpcUaWebDashboard
 
             string samsonURI = "http://samsongroup.com/opc_ua_SAM_FLEXPOS_DIM/";
             Dictionary<string, string> displayNameMap = new Dictionary<string, string>();
-            displayNameMap.Add(samsonURI + "#i=6076", "Samson Trovis ActDynStressFactor (i=6076)");
-            displayNameMap.Add(samsonURI + "#i=6112", "Samson Trovis DiagnosticStatus (i=6112)");
-            displayNameMap.Add(samsonURI + "#i=6092", "Samson Trovis ActValvePosition (i=6092)");
-            displayNameMap.Add(samsonURI + "#i=6066", "Samson Trovis ActPressureOut2 (i=6066)");
-            displayNameMap.Add(samsonURI + "#i=6061", "Samson Trovis ActPressureOut1 (i=6061)");
-            displayNameMap.Add(samsonURI + "#i=6071", "Samson Trovis ActSupplyPressure (i=6071)");
-            displayNameMap.Add(samsonURI + "#i=6102", "Samson Trovis SetValvePosition (i=6102)");
-            displayNameMap.Add(samsonURI + "#i=6097", "Samson Trovis ActControlDeviation (i=6097)");
+            displayNameMap.Add(samsonURI + "#i=6076", "SAMSON Trovis ActDynStressFactor (i=6076)");
+            displayNameMap.Add(samsonURI + "#i=6112", "SAMSON Trovis DiagnosticStatus (i=6112)");
+            displayNameMap.Add(samsonURI + "#i=6092", "SAMSON Trovis ActValvePosition (i=6092)");
+            displayNameMap.Add(samsonURI + "#i=6066", "SAMSON Trovis ActPressureOut2 (i=6066)");
+            displayNameMap.Add(samsonURI + "#i=6061", "SAMSON Trovis ActPressureOut1 (i=6061)");
+            displayNameMap.Add(samsonURI + "#i=6071", "SAMSON Trovis ActSupplyPressure (i=6071)");
+            displayNameMap.Add(samsonURI + "#i=6102", "SAMSON Trovis SetValvePosition (i=6102)");
+            displayNameMap.Add(samsonURI + "#i=6097", "SAMSON Trovis ActControlDeviation (i=6097)");
 
             // unbatch the received data
             foreach (Message message in publisherMessage.Messages)
