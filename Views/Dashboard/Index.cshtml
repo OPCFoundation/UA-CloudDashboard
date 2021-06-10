@@ -115,7 +115,7 @@
                         borderwidth: 3
                     };
                     myChart.data.datasets.push(newDataset);
-                
+
                     myChart.update();
                 }
             });
@@ -128,16 +128,16 @@
                 {
                     myChart.data.labels.shift();
                 }
-                
+
                 for (var j = 0; j < myChart.data.datasets.length; j++)
                 {
-                    myChart.data.datasets[j].data.push(value);
+                    myChart.data.datasets[j].data.push(value[j]);
                     if (myChart.data.datasets[j].data.length > 100)
                     {
                         myChart.data.datasets[j].data.shift();
                     }
                 }
-                
+
                 myChart.update();
             });
 

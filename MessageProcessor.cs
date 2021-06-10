@@ -16,14 +16,15 @@ namespace OpcUaWebDashboard
     /// </summary>
     public class MessageProcessor : IEventProcessor
     {
-        private Stopwatch _checkpointStopwatch;
+        private Stopwatch _checkpointStopwatch = new Stopwatch();
         private const double _checkpointPeriodInMinutes = 5;
-        private List<string> _nodeIDs = new List<string>();
-        
+
+        public static List<string> NodeIDs = new List<string>();
+        private static List<float> _currentValues = new List<float>();
+
         public Task OpenAsync(PartitionContext context)
         {
             // get number of messages between checkpoints
-            _checkpointStopwatch = new Stopwatch();
             _checkpointStopwatch.Start();
 
             return Task.CompletedTask;
@@ -48,7 +49,6 @@ namespace OpcUaWebDashboard
         {
             List<SignalRModel> receivedDataItems = new List<SignalRModel>();
             List<Tuple<string, string, string>> tableEntries = new List<Tuple<string, string, string>>();
-            _nodeIDs.Clear();
 
             // unbatch the received data
             foreach (Message message in publisherMessage.Messages)
@@ -56,9 +56,10 @@ namespace OpcUaWebDashboard
                 foreach (string nodeId in message.Payload.Keys)
                 {
                     // make sure we have it in our list of nodeIDs, which form the basis of our individual time series datasets
-                    if (!_nodeIDs.Contains(nodeId))
+                    if (!NodeIDs.Contains(nodeId))
                     {
-                        _nodeIDs.Add(nodeId);
+                        NodeIDs.Add(nodeId);
+                        _currentValues.Add(0.0f);
                         DashboardController.AddDatasetToChart(nodeId);
                     }
 
@@ -86,62 +87,32 @@ namespace OpcUaWebDashboard
                 }
             }
 
-            // create table
+            // update our table in the dashboard
             DashboardController.CreateTableForTelemetry(tableEntries);
 
-            // group messages by timestamp in nodeID,value pairs
-            List<Tuple<string,float>> currentValues = new List<Tuple<string,float>>();
-
-            // add first entry
-            if (receivedDataItems.Count > 0)
+            // update our line chart in the dashboard
+            while (receivedDataItems.Count > 0)
             {
                 DateTime currentTimestamp = receivedDataItems[0].TimeStamp;
-                currentValues.Add(new Tuple<string, float>(receivedDataItems[0].NodeID, receivedDataItems[0].Value));
+
+                // add first value from the start of our received data items array
+                _currentValues.Insert(NodeIDs.IndexOf(receivedDataItems[0].NodeID), receivedDataItems[0].Value);
+                _currentValues.RemoveAt(NodeIDs.IndexOf(receivedDataItems[0].NodeID) + 1);
                 receivedDataItems.RemoveAt(0);
 
-
-                // add the rest, per timestamp
-                while (receivedDataItems.Count > 0)
+                // add the values we received with the same timestamp
+                for (int i = 0; i < receivedDataItems.Count; i++)
                 {
-                    for (int i = 0; i < receivedDataItems.Count; i++)
+                    if (receivedDataItems[i].TimeStamp == currentTimestamp)
                     {
-                        if (receivedDataItems[i].TimeStamp == currentTimestamp)
-                        {
-                            currentValues.Add(new Tuple<string, float>(receivedDataItems[i].NodeID, receivedDataItems[i].Value));
-                            receivedDataItems.RemoveAt(i);
-                            i--;
-                        }
-                    }
-
-                    // fill the blank datasets for this timestamp with nulls
-                    float[] values = new float[_nodeIDs.Count];
-                    for (int i = 0; i < values.Length; i++)
-                    {
-                        // init to NaN
-                        values[i] = float.NaN;
-
-                        // check if we have a real value
-                        foreach (Tuple<string, float> item in currentValues)
-                        {
-                            if (item.Item1 == _nodeIDs[i])
-                            {
-                                values[i] = item.Item2;
-                                break;
-                            }
-                        }
-                    }
-
-                    // add entry for current timestamp to chart
-                    DashboardController.AddDataToChart(currentTimestamp.ToString(), values);
-
-                    // add next entry
-                    if (receivedDataItems.Count > 0)
-                    {
-                        currentTimestamp = receivedDataItems[0].TimeStamp;
-                        currentValues.Add(new Tuple<string, float>(receivedDataItems[0].NodeID, receivedDataItems[0].Value));
-                        receivedDataItems.RemoveAt(0);
+                        _currentValues.Insert(NodeIDs.IndexOf(receivedDataItems[i].NodeID), receivedDataItems[i].Value);
+                        _currentValues.RemoveAt(NodeIDs.IndexOf(receivedDataItems[0].NodeID) + 1);
+                        receivedDataItems.RemoveAt(i);
+                        i--;
                     }
                 }
+
+                DashboardController.AddDataToChart(currentTimestamp.ToString(), _currentValues.ToArray());
             }
         }
 
