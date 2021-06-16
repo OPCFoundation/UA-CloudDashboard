@@ -32,7 +32,7 @@ namespace OpcUaWebDashboard.Controllers
             Debug.WriteLine("Sent new data set: " + name);
         }
 
-        public static void AddDataToChart(string timestamp, float[] values)
+        public static void AddDataToChart(string timestamp, string[] values)
         {
             _hubContext.Clients.All.SendAsync("addDataToChart", timestamp, values).GetAwaiter().GetResult();
         }
