@@ -20,7 +20,6 @@ namespace OpcUaWebDashboard
         private const double _checkpointPeriodInMinutes = 5;
 
         public static List<string> NodeIDs = new List<string>();
-        private static List<float> _currentValues = new List<float>();
 
         public Task OpenAsync(PartitionContext context)
         {
@@ -70,7 +69,6 @@ namespace OpcUaWebDashboard
                     if (!NodeIDs.Contains(displayNameMap[nodeId]))
                     {
                         NodeIDs.Add(displayNameMap[nodeId]);
-                        _currentValues.Add(0.0f);
                         DashboardController.AddDatasetToChart(displayNameMap[nodeId]);
                     }
 
@@ -102,13 +100,14 @@ namespace OpcUaWebDashboard
             DashboardController.CreateTableForTelemetry(tableEntries);
 
             // update our line chart in the dashboard
+            string[] currentValues = new string[NodeIDs.Count];
+            Array.Fill(currentValues, "NaN");
             while (receivedDataItems.Count > 0)
             {
                 DateTime currentTimestamp = receivedDataItems[0].TimeStamp;
 
                 // add first value from the start of our received data items array
-                _currentValues.Insert(NodeIDs.IndexOf(receivedDataItems[0].NodeID), receivedDataItems[0].Value);
-                _currentValues.RemoveAt(NodeIDs.IndexOf(receivedDataItems[0].NodeID) + 1);
+                currentValues[NodeIDs.IndexOf(receivedDataItems[0].NodeID)] = receivedDataItems[0].Value.ToString();
                 receivedDataItems.RemoveAt(0);
 
                 // add the values we received with the same timestamp
@@ -116,14 +115,13 @@ namespace OpcUaWebDashboard
                 {
                     if (receivedDataItems[i].TimeStamp == currentTimestamp)
                     {
-                        _currentValues.Insert(NodeIDs.IndexOf(receivedDataItems[i].NodeID), receivedDataItems[i].Value);
-                        _currentValues.RemoveAt(NodeIDs.IndexOf(receivedDataItems[0].NodeID) + 1);
+                        currentValues[NodeIDs.IndexOf(receivedDataItems[i].NodeID)] = receivedDataItems[i].Value.ToString();
                         receivedDataItems.RemoveAt(i);
                         i--;
                     }
                 }
 
-                DashboardController.AddDataToChart(currentTimestamp.ToString(), _currentValues.ToArray());
+                DashboardController.AddDataToChart(currentTimestamp.ToString(), currentValues);
             }
         }
 

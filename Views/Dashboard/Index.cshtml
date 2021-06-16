@@ -24,6 +24,7 @@
             const config = {
                 type: 'line',
                 options: {
+                    spanGaps: true,
                     responsive: true,
                     plugins: {
                       legend: {
@@ -124,7 +125,7 @@
             });
 
             // add data function
-            connection.on("addDataToChart", function(timestamp, value)
+            connection.on("addDataToChart", function(timestamp, values)
             {
                 myChart.data.labels.push(timestamp);
                 if (myChart.data.labels.length > 100)
@@ -134,7 +135,8 @@
 
                 for (var j = 0; j < myChart.data.datasets.length; j++)
                 {
-                    myChart.data.datasets[j].data.push(value[j]);
+                    var value = parseFloat(values[j].replace(',', '.'));
+                    myChart.data.datasets[j].data.push(value);
                     if (myChart.data.datasets[j].data.length > 100)
                     {
                         myChart.data.datasets[j].data.shift();
