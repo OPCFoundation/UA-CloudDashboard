@@ -49,23 +49,34 @@ namespace OpcUaWebDashboard
             List<SignalRModel> receivedDataItems = new List<SignalRModel>();
             List<Tuple<string, string, string>> tableEntries = new List<Tuple<string, string, string>>();
 
+            string samsonURI = "http://samsongroup.com/opc_ua_SAM_FLEXPOS_DIM/";
+            Dictionary<string, string> displayNameMap = new Dictionary<string, string>();
+            displayNameMap.Add(samsonURI + "#i=6076", "SAMSON Trovis ActDynStressFactor (i=6076)");
+            displayNameMap.Add(samsonURI + "#i=6112", "SAMSON Trovis DiagnosticStatus (i=6112)");
+            displayNameMap.Add(samsonURI + "#i=6092", "SAMSON Trovis ActValvePosition (i=6092)");
+            displayNameMap.Add(samsonURI + "#i=6066", "SAMSON Trovis ActPressureOut2 (i=6066)");
+            displayNameMap.Add(samsonURI + "#i=6061", "SAMSON Trovis ActPressureOut1 (i=6061)");
+            displayNameMap.Add(samsonURI + "#i=6071", "SAMSON Trovis ActSupplyPressure (i=6071)");
+            displayNameMap.Add(samsonURI + "#i=6102", "SAMSON Trovis SetValvePosition (i=6102)");
+            displayNameMap.Add(samsonURI + "#i=6097", "SAMSON Trovis ActControlDeviation (i=6097)");
+
             // unbatch the received data
             foreach (Message message in publisherMessage.Messages)
             {
                 foreach (string nodeId in message.Payload.Keys)
                 {
                     // make sure we have it in our list of nodeIDs, which form the basis of our individual time series datasets
-                    if (!NodeIDs.Contains(nodeId))
+                    if (!NodeIDs.Contains(displayNameMap[nodeId]))
                     {
-                        NodeIDs.Add(nodeId);
-                        DashboardController.AddDatasetToChart(nodeId);
+                        NodeIDs.Add(displayNameMap[nodeId]);
+                        DashboardController.AddDatasetToChart(displayNameMap[nodeId]);
                     }
 
                     // try to add to our list of received values
                     try
                     {
                         SignalRModel newItem = new SignalRModel {
-                            NodeID = nodeId,
+                            NodeID = displayNameMap[nodeId],
                             TimeStamp = message.Payload[nodeId].SourceTimestamp,
                             Value = float.Parse(message.Payload[nodeId].Value.ToString())
                         };
@@ -78,7 +89,7 @@ namespace OpcUaWebDashboard
 
                     // add item to our table entries
                     tableEntries.Add(new Tuple<string, string, string>(
-                        nodeId,
+                        displayNameMap[nodeId],
                         message.Payload[nodeId].Value.ToString(),
                         message.Payload[nodeId].SourceTimestamp.ToString()
                     ));

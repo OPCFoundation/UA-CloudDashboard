@@ -75,7 +75,7 @@ namespace OpcUaWebDashboard.Controllers
             {
                 // create HTML table
                 StringBuilder sb = new StringBuilder();
-                sb.Append("<table width='600px' cellpadding='3' cellspacing='3'>");
+                sb.Append("<table width='800px' cellpadding='3' cellspacing='3'>");
 
                 // header
                 sb.Append("<tr>");
@@ -88,7 +88,7 @@ namespace OpcUaWebDashboard.Controllers
                 foreach (Tuple<string, string, string> item in _latestTelemetry)
                 {
                     sb.Append("<tr>");
-                    sb.Append("<td style='width:200px'>" + item.Item1 + "</td>");
+                    sb.Append("<td style='width:400px'>" + item.Item1 + "</td>");
                     sb.Append("<td style='width:200px'>" + item.Item2 + "</td>");
                     sb.Append("<td style='width:200px'>" + item.Item3 + "</td>");
                     sb.Append("</tr>");
