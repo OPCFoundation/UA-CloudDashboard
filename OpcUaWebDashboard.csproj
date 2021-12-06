@@ -19,8 +19,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Session" Version="2.2.0" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="4.3.2" />
     <PackageReference Include="Microsoft.Azure.EventHubs.Processor" Version="4.3.2" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.13" />
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.4.366.38" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.14.0" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.4.367.75" />
   </ItemGroup>
 
   <ItemGroup>
