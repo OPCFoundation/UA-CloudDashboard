@@ -15,6 +15,11 @@ Also, within your IoT Hub, you need to define a consumer group (under Built-in e
 
 It is published on DockerHub: https://hub.docker.com/r/barnstee/opcuawebdashboard
 
-Run it via: docker run -p 8080:80 barnstee/opcuawebdashboard:latest
+Run it via: docker run -p 80:80 ghcr.io/barnstee/opcuawebdashboard:main
 
-Then point your web browser to http://localhost:8080
+Then point your web browser to <http://localhost>
+
+## Build Status
+
+[![Docker](https://github.com/barnstee/OpcUaWebDashboard/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/barnstee/OpcUaWebDashboard/actions/workflows/docker-publish.yml)
+
