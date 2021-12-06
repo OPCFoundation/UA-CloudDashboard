@@ -1,6 +1,10 @@
 ﻿using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
 using Newtonsoft.Json;
+using Opc.Ua;
+using Opc.Ua.PubSub;
+using Opc.Ua.PubSub.Encoding;
+using Opc.Ua.PubSub.PublishedData;
 using OpcUaWebDashboard.Controllers;
 using OpcUaWebDashboard.Models;
 using System;
@@ -183,10 +187,36 @@ namespace OpcUaWebDashboard
                         }
                         else
                         {
-                            OpcUaPubSubJsonMessage publisherMessage = JsonConvert.DeserializeObject<OpcUaPubSubJsonMessage>(message);
-                            if (publisherMessage != null)
+                            try
                             {
-                                ProcessPublisherMessage(publisherMessage, (DateTime) eventData.SystemProperties["iothub-enqueuedtime"]);
+                                OpcUaPubSubJsonMessage publisherMessage = JsonConvert.DeserializeObject<OpcUaPubSubJsonMessage>(message);
+                                if (publisherMessage != null)
+                                {
+                                    ProcessPublisherMessage(publisherMessage, (DateTime)eventData.SystemProperties["iothub-enqueuedtime"]);
+                                }
+                            }
+                            catch (Exception)
+                            {
+                                // try processing as UADP binary message
+                                UadpNetworkMessage uaNetworkMessageDecoded = new UadpNetworkMessage();
+                                List<DataSetReaderDataType> dataSetReaders = new List<DataSetReaderDataType>();
+                                dataSetReaders.Add(new DataSetReaderDataType());
+                                uaNetworkMessageDecoded.Decode(ServiceMessageContext.GlobalContext, eventData.Body.Array, dataSetReaders);
+
+                                OpcUaPubSubJsonMessage publisherMessage = new OpcUaPubSubJsonMessage();
+                                publisherMessage.Messages = new List<Message>();
+                                foreach (UaDataSetMessage datasetmessage in uaNetworkMessageDecoded.DataSetMessages)
+                                {
+                                    Message pubSubMessage = new Message();
+                                    pubSubMessage.Payload = new Dictionary<string, DataValue>();
+                                    foreach (Field field in datasetmessage.DataSet.Fields)
+                                    {
+                                        pubSubMessage.Payload.Add(uaNetworkMessageDecoded.PublisherId.ToString(), field.Value);
+                                    }
+                                    publisherMessage.Messages.Add(pubSubMessage);
+                                }
+
+                                ProcessPublisherMessage(publisherMessage, (DateTime)eventData.SystemProperties["iothub-enqueuedtime"]);
                             }
                         }
                     }

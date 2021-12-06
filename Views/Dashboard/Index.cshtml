@@ -113,6 +113,8 @@
                     const newDataset = {
                         label: name,
                         borderColor: dsColor,
+                        cubicInterpolationMode: 'monotone',
+                        tension: 0.5,
                         borderwidth: 3
                     };
                     myChart.data.datasets.push(newDataset);
