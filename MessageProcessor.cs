@@ -44,7 +44,7 @@ namespace OpcUaWebDashboard
             }
         }
 
-        private void ProcessPublisherMessage(OpcUaPubSubJsonMessage publisherMessage)
+        private void ProcessPublisherMessage(OpcUaPubSubJsonMessage publisherMessage, DateTime enqueueTime)
         {
             List<SignalRModel> receivedDataItems = new List<SignalRModel>();
             List<Tuple<string, string, string>> tableEntries = new List<Tuple<string, string, string>>();
@@ -75,6 +75,12 @@ namespace OpcUaWebDashboard
                         DashboardController.AddDatasetToChart(displayName);
                     }
 
+                    if (message.Payload[nodeId].SourceTimestamp == DateTime.MinValue)
+                    {
+                        // use the IoT Hub enqueued time if the OPC UA timestamp is not present
+                        message.Payload[nodeId].SourceTimestamp = enqueueTime;
+                    }
+
                     // try to add to our list of received values
                     try
                     {
@@ -83,6 +89,7 @@ namespace OpcUaWebDashboard
                             TimeStamp = message.Payload[nodeId].SourceTimestamp,
                             Value = float.Parse(message.Payload[nodeId].Value.ToString())
                         };
+
                         receivedDataItems.Add(newItem);
                     }
                     catch (Exception)
@@ -165,7 +172,7 @@ namespace OpcUaWebDashboard
                                 {
                                     try
                                     {
-                                        ProcessPublisherMessage(publisherMessage);
+                                        ProcessPublisherMessage(publisherMessage, (DateTime) eventData.SystemProperties["iothub-enqueuedtime"]);
                                     }
                                     catch (Exception e)
                                     {
@@ -179,7 +186,7 @@ namespace OpcUaWebDashboard
                             OpcUaPubSubJsonMessage publisherMessage = JsonConvert.DeserializeObject<OpcUaPubSubJsonMessage>(message);
                             if (publisherMessage != null)
                             {
-                                ProcessPublisherMessage(publisherMessage);
+                                ProcessPublisherMessage(publisherMessage, (DateTime) eventData.SystemProperties["iothub-enqueuedtime"]);
                             }
                         }
                     }
