@@ -37,14 +37,13 @@ namespace OpcUaWebDashboard
                     solutionStorageAccountConnectionString,
                     StorageContainerName);
 
-            // Registers the Event Processor Host and starts receiving messages.
+            // Register the Event Processor Hosts (1 per partition) and start receiving messages
             EventProcessorOptions options = new EventProcessorOptions();
             options.InitialOffsetProvider = (partitionId) => EventPosition.FromEnqueuedTime(DateTime.UtcNow);
             options.SetExceptionHandler(EventProcessorHostExceptionHandler);
             try
             {
                 await eventProcessorHost.RegisterEventProcessorAsync<MessageProcessor>(options);
-                Trace.TraceInformation($"EventProcessor successfully registered");
             }
             catch (Exception e)
             {

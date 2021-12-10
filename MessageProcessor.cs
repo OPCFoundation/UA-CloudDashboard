@@ -5,7 +5,6 @@ using Opc.Ua;
 using Opc.Ua.PubSub;
 using Opc.Ua.PubSub.Encoding;
 using Opc.Ua.PubSub.PublishedData;
-using OpcUaWebDashboard.Controllers;
 using OpcUaWebDashboard.Models;
 using System;
 using System.Collections.Generic;
@@ -15,28 +14,31 @@ using System.Threading.Tasks;
 
 namespace OpcUaWebDashboard
 {
-    /// <summary>
-    /// This class processes all ingested data into IoTHub.
-    /// </summary>
     public class MessageProcessor : IEventProcessor
     {
         private Stopwatch _checkpointStopwatch = new Stopwatch();
-        private const double _checkpointPeriodInMinutes = 5;
 
-        public static List<string> NodeIDs = new List<string>();
+        private StatusHub _hub;
+
+        public MessageProcessor()
+        {
+            IServiceProvider serviceProvider = Program.AppHost.Services;
+            _hub = (StatusHub) serviceProvider.GetService(typeof(StatusHub));
+        }
 
         public Task OpenAsync(PartitionContext context)
         {
-            // get number of messages between checkpoints
             _checkpointStopwatch.Start();
+
+            Trace.TraceInformation($"EventProcessor successfully registered for partition {context.PartitionId}.");
 
             return Task.CompletedTask;
         }
 
         public Task ProcessErrorAsync(PartitionContext context, Exception error)
         {
-            Trace.TraceError($"Message processor error '{error.Message}' on partition with id '{context.PartitionId}'");
-            Trace.TraceError($"Exception stack '{error.StackTrace}'");
+            Trace.TraceError($"Message processor error {error.Message} on partition with id {context.PartitionId}.");
+
             return Task.CompletedTask;
         }
 
@@ -50,11 +52,7 @@ namespace OpcUaWebDashboard
 
         private void ProcessPublisherMessage(OpcUaPubSubJsonMessage publisherMessage, DateTime enqueueTime)
         {
-            List<SignalRModel> receivedDataItems = new List<SignalRModel>();
-            List<Tuple<string, string, string>> tableEntries = new List<Tuple<string, string, string>>();
-
-            Dictionary<string, string> displayNameMap = new Dictionary<string, string>();
-            // TODO: Add display name substitudes here!
+            Dictionary<string, string> displayNameMap = new Dictionary<string, string>(); // TODO: Add display name substitudes here!
 
             // unbatch the received data
             foreach (Message message in publisherMessage.Messages)
@@ -65,18 +63,14 @@ namespace OpcUaWebDashboard
                     string displayName = nodeId;
                     try
                     {
-                        displayName = displayNameMap[nodeId];
+                        if (displayNameMap.Count > 0)
+                        {
+                            displayName = displayNameMap[nodeId];
+                        }
                     }
                     catch
                     {
                         // keep the original node ID as the display name
-                    }
-
-                    // make sure we have it in our list of nodeIDs, which form the basis of our individual time series datasets
-                    if (!NodeIDs.Contains(displayName))
-                    {
-                        NodeIDs.Add(displayName);
-                        DashboardController.AddDatasetToChart(displayName);
                     }
 
                     if (message.Payload[nodeId].SourceTimestamp == DateTime.MinValue)
@@ -85,65 +79,69 @@ namespace OpcUaWebDashboard
                         message.Payload[nodeId].SourceTimestamp = enqueueTime;
                     }
 
-                    // try to add to our list of received values
                     try
                     {
-                        SignalRModel newItem = new SignalRModel {
-                            NodeID = displayName,
-                            TimeStamp = message.Payload[nodeId].SourceTimestamp,
-                            Value = float.Parse(message.Payload[nodeId].Value.ToString())
-                        };
+                        string timeStamp = message.Payload[nodeId].SourceTimestamp.ToString();
+                        string value = message.Payload[nodeId].Value.ToString();
 
-                        receivedDataItems.Add(newItem);
+                        lock (_hub.TableEntries)
+                        {
+                            if (_hub.TableEntries.ContainsKey(displayName))
+                            {
+                                _hub.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
+                            }
+                            else
+                            {
+                                _hub.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
+                            }
+
+                            float floatValue;
+                            if (float.TryParse(value, out floatValue))
+                            {
+                                // create a keys array as index from our display names
+                                List<string> keys = new List<string>();
+                                foreach (string displayNameAsKey in _hub.TableEntries.Keys)
+                                {
+                                    keys.Add(displayNameAsKey);
+                                }
+
+                                // check if we have to create an initially blank entry first
+                                if (!_hub.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hub.ChartEntries.Count))
+                                {
+                                    string[] blankValues = new string[_hub.TableEntries.Count];
+                                    for (int i = 0; i < blankValues.Length; i++)
+                                    {
+                                        blankValues[i] = "NaN";
+                                    }
+
+                                    if (_hub.ChartEntries.ContainsKey(timeStamp))
+                                    {
+                                        _hub.ChartEntries.Remove(timeStamp);
+                                    }
+
+                                    _hub.ChartEntries.Add(timeStamp, blankValues);
+                                }
+
+                                _hub.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
+                            }
+                        }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
                         // ignore this item
-                    }
-
-                    // add item to our table entries
-                    tableEntries.Add(new Tuple<string, string, string>(
-                        displayName,
-                        message.Payload[nodeId].Value.ToString(),
-                        message.Payload[nodeId].SourceTimestamp.ToString()
-                    ));
-                }
-            }
-
-            // update our table in the dashboard
-            DashboardController.CreateTableForTelemetry(tableEntries);
-
-            // update our line chart in the dashboard
-            string[] currentValues = new string[NodeIDs.Count];
-            Array.Fill(currentValues, "NaN");
-            while (receivedDataItems.Count > 0)
-            {
-                DateTime currentTimestamp = receivedDataItems[0].TimeStamp;
-
-                // add first value from the start of our received data items array
-                currentValues[NodeIDs.IndexOf(receivedDataItems[0].NodeID)] = receivedDataItems[0].Value.ToString();
-                receivedDataItems.RemoveAt(0);
-
-                // add the values we received with the same timestamp
-                for (int i = 0; i < receivedDataItems.Count; i++)
-                {
-                    if (receivedDataItems[i].TimeStamp == currentTimestamp)
-                    {
-                        currentValues[NodeIDs.IndexOf(receivedDataItems[i].NodeID)] = receivedDataItems[i].Value.ToString();
-                        receivedDataItems.RemoveAt(i);
-                        i--;
+                        Trace.TraceInformation($"Cannot add item {nodeId}: {ex.Message}");
                     }
                 }
-
-                DashboardController.AddDataToChart(currentTimestamp.ToString(), currentValues);
             }
         }
 
         private void Checkpoint(PartitionContext context, Stopwatch checkpointStopwatch)
         {
             context.CheckpointAsync();
+
             checkpointStopwatch.Restart();
-            Trace.TraceInformation($"checkpoint completed at {DateTime.UtcNow}");
+
+            Trace.TraceInformation($"checkpoint for partition {context.PartitionId} completed at {DateTime.UtcNow}.");
         }
 
         /// <summary>
@@ -158,7 +156,7 @@ namespace OpcUaWebDashboard
                 try
                 {
                     // checkpoint, so that the processor does not need to start from the beginning if it restarts
-                    if (_checkpointStopwatch.Elapsed > TimeSpan.FromMinutes(_checkpointPeriodInMinutes))
+                    if (_checkpointStopwatch.Elapsed > TimeSpan.FromMinutes(5))
                     {
                         await Task.Run(() => Checkpoint(context, _checkpointStopwatch)).ConfigureAwait(false);
                     }
@@ -189,43 +187,55 @@ namespace OpcUaWebDashboard
                         {
                             try
                             {
-                                OpcUaPubSubJsonMessage publisherMessage = JsonConvert.DeserializeObject<OpcUaPubSubJsonMessage>(message);
-                                if (publisherMessage != null)
+                                if (message.StartsWith("{"))
                                 {
-                                    ProcessPublisherMessage(publisherMessage, (DateTime)eventData.SystemProperties["iothub-enqueuedtime"]);
+                                    OpcUaPubSubJsonMessage publisherMessage = JsonConvert.DeserializeObject<OpcUaPubSubJsonMessage>(message);
+                                    if (publisherMessage != null)
+                                    {
+                                        ProcessPublisherMessage(publisherMessage, (DateTime)eventData.SystemProperties["iothub-enqueuedtime"]);
+                                    }
+                                }
+                                else
+                                {
+                                    DeserializeUADPMessage(eventData);
                                 }
                             }
                             catch (Exception)
                             {
-                                // try processing as UADP binary message
-                                UadpNetworkMessage uaNetworkMessageDecoded = new UadpNetworkMessage();
-                                List<DataSetReaderDataType> dataSetReaders = new List<DataSetReaderDataType>();
-                                dataSetReaders.Add(new DataSetReaderDataType());
-                                uaNetworkMessageDecoded.Decode(ServiceMessageContext.GlobalContext, eventData.Body.Array, dataSetReaders);
-
-                                OpcUaPubSubJsonMessage publisherMessage = new OpcUaPubSubJsonMessage();
-                                publisherMessage.Messages = new List<Message>();
-                                foreach (UaDataSetMessage datasetmessage in uaNetworkMessageDecoded.DataSetMessages)
-                                {
-                                    Message pubSubMessage = new Message();
-                                    pubSubMessage.Payload = new Dictionary<string, DataValue>();
-                                    foreach (Field field in datasetmessage.DataSet.Fields)
-                                    {
-                                        pubSubMessage.Payload.Add(uaNetworkMessageDecoded.PublisherId.ToString(), field.Value);
-                                    }
-                                    publisherMessage.Messages.Add(pubSubMessage);
-                                }
-
-                                ProcessPublisherMessage(publisherMessage, (DateTime)eventData.SystemProperties["iothub-enqueuedtime"]);
+                                DeserializeUADPMessage(eventData);
                             }
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    Trace.TraceError($"Exception '{e.Message}' processing message '{message}'");
+                    Trace.TraceError($"Exception {e.Message} processing message {message}");
                 }
             }
+        }
+
+        private void DeserializeUADPMessage(EventData message)
+        {
+            // try processing as UADP binary message
+            UadpNetworkMessage uaNetworkMessageDecoded = new UadpNetworkMessage();
+            List<DataSetReaderDataType> dataSetReaders = new List<DataSetReaderDataType>();
+            dataSetReaders.Add(new DataSetReaderDataType());
+            uaNetworkMessageDecoded.Decode(ServiceMessageContext.GlobalContext, message.Body.Array, dataSetReaders);
+
+            OpcUaPubSubJsonMessage publisherMessage = new OpcUaPubSubJsonMessage();
+            publisherMessage.Messages = new List<Message>();
+            foreach (UaDataSetMessage datasetmessage in uaNetworkMessageDecoded.DataSetMessages)
+            {
+                Message pubSubMessage = new Message();
+                pubSubMessage.Payload = new Dictionary<string, DataValue>();
+                foreach (Field field in datasetmessage.DataSet.Fields)
+                {
+                    pubSubMessage.Payload.Add(uaNetworkMessageDecoded.PublisherId.ToString(), field.Value);
+                }
+                publisherMessage.Messages.Add(pubSubMessage);
+            }
+
+            ProcessPublisherMessage(publisherMessage, (DateTime)message.SystemProperties["iothub-enqueuedtime"]);
         }
     }
 }
