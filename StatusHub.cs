@@ -21,11 +21,11 @@ namespace OpcUaWebDashboard
             Task.Run(() => SendMessageViaSignalR());
         }
 
-        private void SendMessageViaSignalR()
+        private async Task SendMessageViaSignalR()
         {
             while (true)
             {
-                Task.Delay(3000).GetAwaiter().GetResult();
+                await Task.Delay(3000).ConfigureAwait(false);
 
                 lock (TableEntries)
                 {

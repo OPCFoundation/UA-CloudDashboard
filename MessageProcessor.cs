@@ -46,7 +46,7 @@ namespace OpcUaWebDashboard
         {
             if (reason == CloseReason.Shutdown)
             {
-                await context.CheckpointAsync();
+                await context.CheckpointAsync().ConfigureAwait(false);
             }
         }
 
@@ -106,7 +106,7 @@ namespace OpcUaWebDashboard
                                 }
 
                                 // check if we have to create an initially blank entry first
-                                if (!_hub.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hub.ChartEntries.Count))
+                                if (!_hub.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hub.ChartEntries[timeStamp].Length))
                                 {
                                     string[] blankValues = new string[_hub.TableEntries.Count];
                                     for (int i = 0; i < blankValues.Length; i++)
@@ -135,11 +135,11 @@ namespace OpcUaWebDashboard
             }
         }
 
-        private void Checkpoint(PartitionContext context, Stopwatch checkpointStopwatch)
+        private void Checkpoint(PartitionContext context)
         {
             context.CheckpointAsync();
 
-            checkpointStopwatch.Restart();
+            _checkpointStopwatch.Restart();
 
             Trace.TraceInformation($"checkpoint for partition {context.PartitionId} completed at {DateTime.UtcNow}.");
         }
@@ -158,7 +158,7 @@ namespace OpcUaWebDashboard
                     // checkpoint, so that the processor does not need to start from the beginning if it restarts
                     if (_checkpointStopwatch.Elapsed > TimeSpan.FromMinutes(5))
                     {
-                        await Task.Run(() => Checkpoint(context, _checkpointStopwatch)).ConfigureAwait(false);
+                        await Task.Run(() => Checkpoint(context)).ConfigureAwait(false);
                     }
 
                     message = Encoding.UTF8.GetString(eventData.Body.Array, eventData.Body.Offset, eventData.Body.Count);

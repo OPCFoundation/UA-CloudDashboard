@@ -43,7 +43,7 @@ namespace OpcUaWebDashboard
             options.SetExceptionHandler(EventProcessorHostExceptionHandler);
             try
             {
-                await eventProcessorHost.RegisterEventProcessorAsync<MessageProcessor>(options);
+                await eventProcessorHost.RegisterEventProcessorAsync<MessageProcessor>(options).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -56,10 +56,11 @@ namespace OpcUaWebDashboard
                 if (ct.IsCancellationRequested)
                 {
                     Trace.TraceInformation($"Application is shutting down. Unregistering EventProcessorHost...");
-                    await eventProcessorHost.UnregisterEventProcessorAsync();
+                    await eventProcessorHost.UnregisterEventProcessorAsync().ConfigureAwait(false);
                     return;
                 }
-                await Task.Delay(1000);
+
+                await Task.Delay(1000).ConfigureAwait(false);
             }
         }
 
