@@ -21,8 +21,6 @@ namespace OpcUaWebDashboard
             services.AddControllersWithViews();
 
             services.AddSignalR();
-
-            services.AddSingleton<StatusHub>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

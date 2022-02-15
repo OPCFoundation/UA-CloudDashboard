@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.EventHubs;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
 using Newtonsoft.Json;
 using Opc.Ua;
@@ -18,12 +19,12 @@ namespace OpcUaWebDashboard
     {
         private Stopwatch _checkpointStopwatch = new Stopwatch();
 
-        private StatusHub _hub;
+        private StatusHubClient _hubClient;
 
         public MessageProcessor()
         {
             IServiceProvider serviceProvider = Program.AppHost.Services;
-            _hub = (StatusHub) serviceProvider.GetService(typeof(StatusHub));
+            _hubClient = new StatusHubClient((IHubContext<StatusHub>) serviceProvider.GetService(typeof(IHubContext<StatusHub>)));
         }
 
         public Task OpenAsync(PartitionContext context)
@@ -84,15 +85,15 @@ namespace OpcUaWebDashboard
                         string timeStamp = message.Payload[nodeId].SourceTimestamp.ToString();
                         string value = message.Payload[nodeId].Value.ToString();
 
-                        lock (_hub.TableEntries)
+                        lock (_hubClient.TableEntries)
                         {
-                            if (_hub.TableEntries.ContainsKey(displayName))
+                            if (_hubClient.TableEntries.ContainsKey(displayName))
                             {
-                                _hub.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
+                                _hubClient.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
                             }
                             else
                             {
-                                _hub.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
+                                _hubClient.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
                             }
 
                             float floatValue;
@@ -100,29 +101,29 @@ namespace OpcUaWebDashboard
                             {
                                 // create a keys array as index from our display names
                                 List<string> keys = new List<string>();
-                                foreach (string displayNameAsKey in _hub.TableEntries.Keys)
+                                foreach (string displayNameAsKey in _hubClient.TableEntries.Keys)
                                 {
                                     keys.Add(displayNameAsKey);
                                 }
 
                                 // check if we have to create an initially blank entry first
-                                if (!_hub.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hub.ChartEntries[timeStamp].Length))
+                                if (!_hubClient.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hubClient.ChartEntries[timeStamp].Length))
                                 {
-                                    string[] blankValues = new string[_hub.TableEntries.Count];
+                                    string[] blankValues = new string[_hubClient.TableEntries.Count];
                                     for (int i = 0; i < blankValues.Length; i++)
                                     {
                                         blankValues[i] = "NaN";
                                     }
 
-                                    if (_hub.ChartEntries.ContainsKey(timeStamp))
+                                    if (_hubClient.ChartEntries.ContainsKey(timeStamp))
                                     {
-                                        _hub.ChartEntries.Remove(timeStamp);
+                                        _hubClient.ChartEntries.Remove(timeStamp);
                                     }
 
-                                    _hub.ChartEntries.Add(timeStamp, blankValues);
+                                    _hubClient.ChartEntries.Add(timeStamp, blankValues);
                                 }
 
-                                _hub.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
+                                _hubClient.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
                             }
                         }
                     }

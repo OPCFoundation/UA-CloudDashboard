@@ -9,16 +9,22 @@ namespace OpcUaWebDashboard
 {
     public class StatusHub : Hub
     {
-        public Dictionary<string, Tuple<string, string>> TableEntries { get; set; }
+        // this is our SignalR Status Hub
+    }
 
-        public Dictionary<string, string[]> ChartEntries { get; set; }
+    public class StatusHubClient
+    { 
+        public Dictionary<string, Tuple<string, string>> TableEntries { get; set; } = new Dictionary<string, Tuple<string, string>>();
 
-        public StatusHub()
+        public Dictionary<string, string[]> ChartEntries { get; set; } = new Dictionary<string, string[]>();
+
+        private readonly IHubContext<StatusHub> _hubContext;
+
+        public StatusHubClient(IHubContext<StatusHub> hubContext)
         {
-            TableEntries = new Dictionary<string, Tuple<string, string>>();
-            ChartEntries = new Dictionary<string, string[]>();
+            _hubContext = hubContext;
 
-            Task.Run(() => SendMessageViaSignalR());
+            _ = Task.Run(() => SendMessageViaSignalR());
         }
 
         private async Task SendMessageViaSignalR()
@@ -31,12 +37,12 @@ namespace OpcUaWebDashboard
                 {
                     foreach (string displayName in TableEntries.Keys)
                     {
-                        Clients?.All.SendAsync("addDatasetToChart", displayName).GetAwaiter().GetResult();
+                        _hubContext.Clients.All.SendAsync("addDatasetToChart", displayName).GetAwaiter().GetResult();
                     }
 
                     foreach (KeyValuePair<string, string[]> entry in ChartEntries)
                     {
-                        Clients?.All.SendAsync("addDataToChart", entry.Key, entry.Value).GetAwaiter().GetResult();
+                        _hubContext.Clients.All.SendAsync("addDataToChart", entry.Key, entry.Value).GetAwaiter().GetResult();
                     }
                     ChartEntries.Clear();
 
@@ -70,7 +76,7 @@ namespace OpcUaWebDashboard
 
             sb.Append("</table>");
 
-            Clients?.All.SendAsync("addTable", sb.ToString()).GetAwaiter().GetResult();
+            _hubContext.Clients.All.SendAsync("addTable", sb.ToString()).GetAwaiter().GetResult();
         }
     }
 }
