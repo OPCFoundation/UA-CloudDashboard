@@ -26,11 +26,6 @@
     "Docker": {
       "commandName": "Docker",
       "launchBrowser": true,
-      "environmentVariables": {
-        "StorageAccountConnectionString": "DefaultEndpointsProtocol=https;AccountName=opcf;AccountKey=tfRdIfH/+l7npP0wzG35mVryqjgz4r0TkTqtUpIlXD2fedtbQHvLCH60ZioyZKY6ERq748HSy75X6JVzZD6nzQ==;EndpointSuffix=core.windows.net",
-        "IotHubEventHubName": "opcf",
-        "EventHubEndpointIotHubOwnerConnectionString": "Endpoint=sb://iothub-ns-opcf-16863497-0446ee8490.servicebus.windows.net/;SharedAccessKeyName=iothubowner;SharedAccessKey=yITS5MVjFnW2qRPYiLCkEaKW+KWP3ZjN1qdUd3qGQvU=;EntityPath=opcf"
-      },
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "publishAllPorts": true,
       "useSSL": true
