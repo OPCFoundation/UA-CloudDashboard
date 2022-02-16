@@ -30,19 +30,18 @@ namespace OpcUaWebDashboard
                 _uaMessageProcessor = (IUAPubSubMessageProcessor)Program.AppHost.Services.GetService(typeof(IUAPubSubMessageProcessor));
 
                 // create MQTT client
-                string password = Environment.GetEnvironmentVariable("MQTT_PASSWORD");
                 _client = new MqttFactory().CreateMqttClient();
                 _client.UseApplicationMessageReceivedHandler(msg => HandleMessageAsync(msg));
                 var clientOptions = new MqttClientOptionsBuilder()
                     .WithTcpServer(opt => opt.NoDelay = true)
                     .WithClientId(Environment.GetEnvironmentVariable("MQTT_CLIENT_NAME"))
-                    .WithTcpServer(Environment.GetEnvironmentVariable("MQTT_BROKER_NAME"), 8883)
-                    .WithTls(new MqttClientOptionsBuilderTlsParameters { UseTls = true })
+                    .WithTcpServer(Environment.GetEnvironmentVariable("MQTT_BROKER_NAME"), int.Parse(Environment.GetEnvironmentVariable("MQTT_BROKER_PORT")))
+                    .WithTls(new MqttClientOptionsBuilderTlsParameters { UseTls = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MQTT_USE_TLS")) })
                     .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V311)
                     .WithCommunicationTimeout(TimeSpan.FromSeconds(30))
                     .WithKeepAlivePeriod(TimeSpan.FromSeconds(300))
                     .WithCleanSession(false) // keep existing subscriptions 
-                    .WithCredentials(Environment.GetEnvironmentVariable("MQTT_USERNAME"), password);
+                    .WithCredentials(Environment.GetEnvironmentVariable("MQTT_USERNAME"), Environment.GetEnvironmentVariable("MQTT_PASSWORD"));
 
                 // setup disconnection handling
                 _client.UseDisconnectedHandler(disconnectArgs =>
@@ -117,38 +116,28 @@ namespace OpcUaWebDashboard
         // handles all incoming messages
         private static async Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs args)
         {
-            Trace.TraceInformation($"Received method call with topic: {args.ApplicationMessage.Topic} and payload: {args.ApplicationMessage.ConvertPayloadToString()}");
-
-            string requestTopic = Environment.GetEnvironmentVariable("MQTT_TOPIC");
-            string requestID = args.ApplicationMessage.Topic.Substring(args.ApplicationMessage.Topic.IndexOf("?"));
+            Trace.TraceInformation($"Received message from topic: {args.ApplicationMessage.Topic} and payload: {args.ApplicationMessage.ConvertPayloadToString()}");
 
             try
             {
-                string requestPayload = args.ApplicationMessage.ConvertPayloadToString();
-                byte[] responsePayload = null;
+                _uaMessageProcessor.ProcessMessage(args.ApplicationMessage.Payload, DateTime.UtcNow);
 
-                // route this to the right handler
-                if (args.ApplicationMessage.Topic.StartsWith(requestTopic.TrimEnd('#') + "Data"))
+                // send reponse to MQTT broker, if required
+                if (args.ApplicationMessage.ResponseTopic != null)
                 {
-                    _uaMessageProcessor.ProcessMessage(args.ApplicationMessage.Payload, DateTime.UtcNow);
-                    responsePayload = Encoding.UTF8.GetBytes("Success");
+                    byte[] responsePayload = Encoding.UTF8.GetBytes("Success");
+                    await _client.PublishAsync(BuildResponse("200", string.Empty, args.ApplicationMessage.ResponseTopic, responsePayload)).ConfigureAwait(false);
                 }
-           
-                else
-                {
-                    Trace.TraceError("Unknown command received: " + args.ApplicationMessage.Topic);
-                }
-
-                // send reponse to MQTT broker
-                //await _client.PublishAsync(BuildResponse("200", requestID, args.ApplicationMessage.ResponseTopic, responsePayload)).ConfigureAwait(false);
-
             }
             catch (Exception ex)
             {
                 Trace.TraceError(ex.Message);
 
-                // send error to MQTT broker
-                await _client.PublishAsync(BuildResponse("500", requestID, args.ApplicationMessage.ResponseTopic, Encoding.UTF8.GetBytes(ex.Message))).ConfigureAwait(false);
+                // send error to MQTT broker, if required
+                if (args.ApplicationMessage.ResponseTopic != null)
+                {
+                    await _client.PublishAsync(BuildResponse("500", string.Empty, args.ApplicationMessage.ResponseTopic, Encoding.UTF8.GetBytes(ex.Message))).ConfigureAwait(false);
+                }
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using Opc.Ua;
+using System;
 using System.Collections.Generic;
 
 namespace OpcUaWebDashboard.Models
@@ -22,7 +23,9 @@ namespace OpcUaWebDashboard.Models
 
         public MetaDataVersion MetaDataVersion { get; set; }
 
-        public Dictionary<string, DataValue> Payload { get; set; }
+        public DateTime Timestamp { get; set; }
+
+        public Dictionary<string, Value> Payload { get; set; }
     }
 
     public class MetaDataVersion
@@ -30,5 +33,21 @@ namespace OpcUaWebDashboard.Models
         public int MajorVersion { get; set; }
 
         public int MinorVersion { get; set; }
+    }
+
+    public class Value
+    {
+        public string value { get; set; }
+        
+        public string Body { get; set; }
+
+        public int Type { get; set; }
+                
+        public Value(string body, int type)
+        {
+            Body = body;
+            Type = type;
+        }
+
     }
 }

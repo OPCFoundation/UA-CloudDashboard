@@ -13,6 +13,8 @@ The following environment variables can be defined:
 
 * USE_MQTT - Read OPC UA PubSub telementry messages from an MQTT Borker instead of Azure IoT Hub
 * MQTT_BROKER_NAME - the name of the MQTT broker to use
+* MQTT_BROKER_PORT - the port number of the MQTT broker
+* MQTT_USE_TLS - set to 1 to use Transport Layer Security with MQTT
 * MQTT_CLIENT_NAME - the client name to use with the MQTT broker
 * MQTT_USERNAME - the username to use with the MQTT broker
 * MQTT_PASSWORD - the password to use with the MQTT broker
