@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
 
 namespace OpcUaWebDashboard
 {
@@ -21,6 +22,8 @@ namespace OpcUaWebDashboard
             services.AddControllersWithViews();
 
             services.AddSignalR();
+
+            services.AddSingleton<IUAPubSubMessageProcessor, UAPubSubMessageProcessor>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -54,6 +57,15 @@ namespace OpcUaWebDashboard
 
                 endpoints.MapHub<StatusHub>("/statushub");
             });
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_MQTT")))
+            {
+                MQTTSubscriber.Connect();
+            }
+            else
+            {
+                IoTHubConfig.Connect();
+            }
         }
     }
 }

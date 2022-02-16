@@ -10,12 +10,12 @@ namespace OpcUaWebDashboard
 {
     public class IoTHubConfig
     {
-        public static Task ConfigureIotHub()
+        public static Task Connect()
         {
-            return Task.Run(() => ConnectToIotHubAsync(CancellationToken.None));
+            return Task.Run(() => ConnectToIoTHubAsync(CancellationToken.None));
         }
 
-        private static async Task ConnectToIotHubAsync(CancellationToken ct)
+        private static async Task ConnectToIoTHubAsync(CancellationToken ct)
         {
             EventProcessorHost eventProcessorHost;
 
@@ -43,7 +43,7 @@ namespace OpcUaWebDashboard
             options.SetExceptionHandler(EventProcessorHostExceptionHandler);
             try
             {
-                await eventProcessorHost.RegisterEventProcessorAsync<MessageProcessor>(options).ConfigureAwait(false);
+                await eventProcessorHost.RegisterEventProcessorAsync<EventHubProcessor>(options).ConfigureAwait(false);
             }
             catch (Exception e)
             {

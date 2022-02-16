@@ -9,8 +9,6 @@ namespace OpcUaWebDashboard
 
         public static void Main(string[] args)
         {
-            IoTHubConfig.ConfigureIotHub();
-
             AppHost = CreateHostBuilder(args).Build();
             AppHost.Run();
         }
