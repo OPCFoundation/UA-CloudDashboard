@@ -1,5 +1,5 @@
 # OpcUaWebDashboard
-A cloud-based, dockerized dashboard for displaying OPC UA PubSub telemetry data, read directly from an Azure IoT Hub.
+A cloud-based, dockerized dashboard for displaying OPC UA PubSub telemetry data, read directly from an Azure IoT Hub or an MQTT broker. It supports both JSON and binary payloads.
 
 ## Installation
 
