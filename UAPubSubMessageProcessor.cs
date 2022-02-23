@@ -77,7 +77,11 @@ namespace OpcUaWebDashboard
                     subscribedDataSet1.TargetVariables = new FieldTargetDataTypeCollection();
                     jsonDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet1);
 
-                    if (!_dataSetReaders.ContainsKey(((JsonNetworkMessage)encodedMessage).PublisherId))
+                    if (_dataSetReaders.ContainsKey(((JsonNetworkMessage)encodedMessage).PublisherId))
+                    {
+                        _dataSetReaders[((JsonNetworkMessage)encodedMessage).PublisherId] = jsonDataSetReader;
+                    }
+                    else
                     {
                         _dataSetReaders.Add(((JsonNetworkMessage)encodedMessage).PublisherId, jsonDataSetReader);
                     }
