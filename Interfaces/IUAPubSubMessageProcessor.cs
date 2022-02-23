@@ -5,6 +5,6 @@ namespace OpcUaWebDashboard
 
     public interface IUAPubSubMessageProcessor
     {
-        void ProcessMessage(byte[] payload, DateTime receivedTime);
+        void ProcessMessage(byte[] payload, DateTime receivedTime, string contentType);
     }
 }

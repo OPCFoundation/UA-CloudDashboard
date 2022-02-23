@@ -25,7 +25,7 @@ namespace OpcUaWebDashboard
             _dataSetReaders = new Dictionary<string, DataSetReaderDataType>();
         }
 
-        public void ProcessMessage(byte[] payload, DateTime receivedTime)
+        public void ProcessMessage(byte[] payload, DateTime receivedTime, string contentType)
         {
             string message = string.Empty;
             try
@@ -33,12 +33,11 @@ namespace OpcUaWebDashboard
                 message = Encoding.UTF8.GetString(payload);
                 if (message != null)
                 {
-                    // try decoding JSON and if that fails try UADP
-                    try
-                    {
+                    if (contentType == "application/json")
+                    { 
                         DecodeMessage(payload, receivedTime, new JsonNetworkMessage());
                     }
-                    catch (Exception)
+                    else
                     {
                         DecodeMessage(payload, receivedTime, new UadpNetworkMessage());
                     }

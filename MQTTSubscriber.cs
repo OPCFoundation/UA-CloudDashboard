@@ -120,7 +120,7 @@ namespace OpcUaWebDashboard
 
             try
             {
-                _uaMessageProcessor.ProcessMessage(args.ApplicationMessage.Payload, DateTime.UtcNow);
+                _uaMessageProcessor.ProcessMessage(args.ApplicationMessage.Payload, DateTime.UtcNow, args.ApplicationMessage.ContentType);
 
                 // send reponse to MQTT broker, if required
                 if (args.ApplicationMessage.ResponseTopic != null)

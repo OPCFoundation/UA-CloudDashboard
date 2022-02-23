@@ -70,7 +70,7 @@ namespace OpcUaWebDashboard
 
                     byte[] payload = new byte[eventData.Body.Count];
                     Array.Copy(eventData.Body.Array, eventData.Body.Offset, payload, 0, eventData.Body.Count);
-                    _uaMessageProcessor.ProcessMessage(payload, (DateTime)eventData.SystemProperties["iothub-enqueuedtime"]);
+                    _uaMessageProcessor.ProcessMessage(payload, (DateTime)eventData.SystemProperties["iothub-enqueuedtime"], eventData.ContentType);
                 }
                 catch (Exception e)
                 {
