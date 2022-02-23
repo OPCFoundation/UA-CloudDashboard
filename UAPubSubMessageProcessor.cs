@@ -2,7 +2,6 @@
 namespace OpcUaWebDashboard
 {
     using Microsoft.AspNetCore.SignalR;
-    using Newtonsoft.Json;
     using Opc.Ua;
     using Opc.Ua.PubSub;
     using Opc.Ua.PubSub.Encoding;
@@ -11,16 +10,19 @@ namespace OpcUaWebDashboard
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Linq;
     using System.Text;
 
     public class UAPubSubMessageProcessor : IUAPubSubMessageProcessor
     {
         private StatusHubClient _hubClient;
+        private Dictionary<string, DataSetReaderDataType> _dataSetReaders;
 
         public UAPubSubMessageProcessor()
         {
             IServiceProvider serviceProvider = Program.AppHost.Services;
             _hubClient = new StatusHubClient((IHubContext<StatusHub>)serviceProvider.GetService(typeof(IHubContext<StatusHub>)));
+            _dataSetReaders = new Dictionary<string, DataSetReaderDataType>();
         }
 
         public void ProcessMessage(byte[] payload, DateTime receivedTime)
@@ -31,46 +33,14 @@ namespace OpcUaWebDashboard
                 message = Encoding.UTF8.GetString(payload);
                 if (message != null)
                 {
-                    // support batched messages as well as simple message ingests
-                    if (message.StartsWith("["))
+                    // try decoding JSON and if that fails try UADP
+                    try
                     {
-                        List<OpcUaPubSubJsonMessage> publisherMessages = JsonConvert.DeserializeObject<List<OpcUaPubSubJsonMessage>>(message);
-                        foreach (OpcUaPubSubJsonMessage publisherMessage in publisherMessages)
-                        {
-                            if (publisherMessage != null)
-                            {
-                                try
-                                {
-                                    ProcessPublisherMessage(publisherMessage, receivedTime);
-                                }
-                                catch (Exception e)
-                                {
-                                    Trace.TraceError($"Exception '{e.Message}' while processing message {publisherMessage}");
-                                }
-                            }
-                        }
+                        DecodeMessage(payload, receivedTime, new JsonNetworkMessage());
                     }
-                    else
+                    catch (Exception)
                     {
-                        try
-                        {
-                            if (message.StartsWith("{"))
-                            {
-                                OpcUaPubSubJsonMessage publisherMessage = JsonConvert.DeserializeObject<OpcUaPubSubJsonMessage>(message);
-                                if (publisherMessage != null)
-                                {
-                                    ProcessPublisherMessage(publisherMessage, receivedTime);
-                                }
-                            }
-                            else
-                            {
-                                DeserializeUADPMessage(payload, receivedTime);
-                            }
-                        }
-                        catch (Exception)
-                        {
-                            DeserializeUADPMessage(payload, receivedTime);
-                        }
+                        DecodeMessage(payload, receivedTime, new UadpNetworkMessage());
                     }
                 }
             }
@@ -80,34 +50,90 @@ namespace OpcUaWebDashboard
             }
         }
 
-        private void DeserializeUADPMessage(byte[] payload, DateTime receivedTime)
+        private void DecodeMessage(byte[] payload, DateTime receivedTime, UaNetworkMessage encodedMessage)
         {
-            // try processing as UADP binary message
-            UadpNetworkMessage uaNetworkMessageDecoded = new UadpNetworkMessage();
-            List<DataSetReaderDataType> dataSetReaders = new List<DataSetReaderDataType>();
-            dataSetReaders.Add(new DataSetReaderDataType());
-            uaNetworkMessageDecoded.Decode(ServiceMessageContext.GlobalContext, payload, dataSetReaders);
-
-            OpcUaPubSubJsonMessage publisherMessage = new OpcUaPubSubJsonMessage();
-            publisherMessage.Messages = new List<Message>();
-            foreach (UaDataSetMessage datasetmessage in uaNetworkMessageDecoded.DataSetMessages)
+            encodedMessage.Decode(ServiceMessageContext.GlobalContext, payload, null);
+            if (encodedMessage.IsMetaDataMessage)
             {
-                Message pubSubMessage = new Message();
-                pubSubMessage.Payload = new Dictionary<string, Value>();
-                if (datasetmessage.DataSet != null)
+                // setup dataset reader
+                if (encodedMessage is JsonNetworkMessage)
                 {
-                    foreach (Field field in datasetmessage.DataSet.Fields)
+                    DataSetReaderDataType jsonDataSetReader = new DataSetReaderDataType();
+                    jsonDataSetReader.Name = "dataSetReader";
+                    jsonDataSetReader.Enabled = true;
+                    jsonDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.RawData;
+                    jsonDataSetReader.KeyFrameCount = 1;
+                    jsonDataSetReader.TransportSettings = new ExtensionObject(new BrokerDataSetReaderTransportDataType());
+                    jsonDataSetReader.DataSetMetaData = encodedMessage.DataSetMetaData;
+
+                    DataSetReaderMessageDataType jsonDataSetReaderMessageSettings = new UadpDataSetReaderMessageDataType()
                     {
-                        pubSubMessage.Payload.Add(uaNetworkMessageDecoded.PublisherId.ToString(), new Value(field.Value.ToString(), (int)field.Value.WrappedValue.TypeInfo.BuiltInType.GetTypeCode()));
+                        NetworkMessageContentMask = (uint)(UadpNetworkMessageContentMask.PublisherId | UadpNetworkMessageContentMask.WriterGroupId),
+                        DataSetMessageContentMask = (uint)UadpDataSetMessageContentMask.None,
+                    };
+                    jsonDataSetReader.MessageSettings = new ExtensionObject(jsonDataSetReaderMessageSettings);
+
+                    TargetVariablesDataType subscribedDataSet1 = new TargetVariablesDataType();
+                    subscribedDataSet1.TargetVariables = new FieldTargetDataTypeCollection();
+                    jsonDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet1);
+
+                    if (!_dataSetReaders.ContainsKey(((JsonNetworkMessage)encodedMessage).PublisherId))
+                    {
+                        _dataSetReaders.Add(((JsonNetworkMessage)encodedMessage).PublisherId, jsonDataSetReader);
                     }
-                    publisherMessage.Messages.Add(pubSubMessage);
+                }
+                else
+                {
+                    DataSetReaderDataType uadpDataSetReader = new DataSetReaderDataType();
+                    uadpDataSetReader.Name = "dataSetReader";
+                    uadpDataSetReader.Enabled = true;
+                    uadpDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.RawData;
+                    uadpDataSetReader.KeyFrameCount = 1;
+                    uadpDataSetReader.TransportSettings = new ExtensionObject(new BrokerDataSetReaderTransportDataType());
+                    uadpDataSetReader.DataSetMetaData = encodedMessage.DataSetMetaData;
+
+                    DataSetReaderMessageDataType uadpDataSetReaderMessageSettings = new JsonDataSetReaderMessageDataType()
+                    {
+                        NetworkMessageContentMask = (uint)(JsonNetworkMessageContentMask.PublisherId | JsonNetworkMessageContentMask.NetworkMessageHeader),
+                        DataSetMessageContentMask = (uint)JsonDataSetMessageContentMask.None,
+                    };
+                    uadpDataSetReader.MessageSettings = new ExtensionObject(uadpDataSetReaderMessageSettings);
+
+                    TargetVariablesDataType subscribedDataSet2 = new TargetVariablesDataType();
+                    subscribedDataSet2.TargetVariables = new FieldTargetDataTypeCollection();
+                    uadpDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet2);
+
+                    if (!_dataSetReaders.ContainsKey(((UadpNetworkMessage)encodedMessage).PublisherId.ToString()))
+                    {
+                        _dataSetReaders.Add(((UadpNetworkMessage)encodedMessage).PublisherId.ToString(), uadpDataSetReader);
+                    }
                 }
             }
+            else
+            {
+                encodedMessage.Decode(ServiceMessageContext.GlobalContext, payload, _dataSetReaders.Values.ToArray());
 
-            ProcessPublisherMessage(publisherMessage, receivedTime);
+                OpcUaPubSubMessageModel publisherMessage = new OpcUaPubSubMessageModel();
+                publisherMessage.Messages = new List<Message>();
+                foreach (UaDataSetMessage datasetmessage in encodedMessage.DataSetMessages)
+                {
+                    Message pubSubMessage = new Message();
+                    pubSubMessage.Payload = new Dictionary<string, DataValue>();
+                    if (datasetmessage.DataSet != null)
+                    {
+                        foreach (Field field in datasetmessage.DataSet.Fields)
+                        {
+                            pubSubMessage.Payload.Add(field.FieldMetaData.Name, field.Value);
+                        }
+                        publisherMessage.Messages.Add(pubSubMessage);
+                    }
+                }
+
+                ProcessPublisherMessage(publisherMessage, receivedTime);
+            }
         }
 
-        private void ProcessPublisherMessage(OpcUaPubSubJsonMessage publisherMessage, DateTime enqueueTime)
+        private void ProcessPublisherMessage(OpcUaPubSubMessageModel publisherMessage, DateTime enqueueTime)
         {
             Dictionary<string, string> displayNameMap = new Dictionary<string, string>(); // TODO: Add display name substitudes here!
 
@@ -132,59 +158,56 @@ namespace OpcUaWebDashboard
                             // keep the original node ID as the display name
                         }
 
-                        if (message.Timestamp == DateTime.MinValue)
+                        if (message.Payload[nodeId].SourceTimestamp == DateTime.MinValue)
                         {
-                            // use the enqueued time if the OPC UA timestamp is not present
-                            message.Timestamp = enqueueTime;
+                            // use the IoT Hub enqueued time if the OPC UA timestamp is not present
+                            message.Payload[nodeId].SourceTimestamp = enqueueTime;
                         }
 
                         try
                         {
-                            string timeStamp = message.Timestamp.ToString();
-                            if (message.Payload[nodeId].Body != null)
+                            string timeStamp = message.Payload[nodeId].SourceTimestamp.ToString();
+                            string value = message.Payload[nodeId].Value.ToString();
+
+                            lock (_hubClient.TableEntries)
                             {
-                                string value = message.Payload[nodeId].Body.ToString();
-
-                                lock (_hubClient.TableEntries)
+                                if (_hubClient.TableEntries.ContainsKey(displayName))
                                 {
-                                    if (_hubClient.TableEntries.ContainsKey(displayName))
+                                    _hubClient.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
+                                }
+                                else
+                                {
+                                    _hubClient.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
+                                }
+
+                                float floatValue;
+                                if (float.TryParse(value, out floatValue))
+                                {
+                                    // create a keys array as index from our display names
+                                    List<string> keys = new List<string>();
+                                    foreach (string displayNameAsKey in _hubClient.TableEntries.Keys)
                                     {
-                                        _hubClient.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
-                                    }
-                                    else
-                                    {
-                                        _hubClient.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
+                                        keys.Add(displayNameAsKey);
                                     }
 
-                                    float floatValue;
-                                    if (float.TryParse(value, out floatValue))
+                                    // check if we have to create an initially blank entry first
+                                    if (!_hubClient.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hubClient.ChartEntries[timeStamp].Length))
                                     {
-                                        // create a keys array as index from our display names
-                                        List<string> keys = new List<string>();
-                                        foreach (string displayNameAsKey in _hubClient.TableEntries.Keys)
+                                        string[] blankValues = new string[_hubClient.TableEntries.Count];
+                                        for (int i = 0; i < blankValues.Length; i++)
                                         {
-                                            keys.Add(displayNameAsKey);
+                                            blankValues[i] = "NaN";
                                         }
 
-                                        // check if we have to create an initially blank entry first
-                                        if (!_hubClient.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hubClient.ChartEntries[timeStamp].Length))
+                                        if (_hubClient.ChartEntries.ContainsKey(timeStamp))
                                         {
-                                            string[] blankValues = new string[_hubClient.TableEntries.Count];
-                                            for (int i = 0; i < blankValues.Length; i++)
-                                            {
-                                                blankValues[i] = "NaN";
-                                            }
-
-                                            if (_hubClient.ChartEntries.ContainsKey(timeStamp))
-                                            {
-                                                _hubClient.ChartEntries.Remove(timeStamp);
-                                            }
-
-                                            _hubClient.ChartEntries.Add(timeStamp, blankValues);
+                                            _hubClient.ChartEntries.Remove(timeStamp);
                                         }
 
-                                        _hubClient.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
+                                        _hubClient.ChartEntries.Add(timeStamp, blankValues);
                                     }
+
+                                    _hubClient.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
                                 }
                             }
                         }
