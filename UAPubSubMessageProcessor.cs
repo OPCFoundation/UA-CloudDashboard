@@ -33,7 +33,7 @@ namespace OpcUaWebDashboard
                 message = Encoding.UTF8.GetString(payload);
                 if (message != null)
                 {
-                    if (contentType == "application/json")
+                    if ((contentType != null) && (contentType == "application/json") || message.StartsWith('{'))
                     { 
                         DecodeMessage(payload, receivedTime, new JsonNetworkMessage());
                     }
@@ -116,6 +116,16 @@ namespace OpcUaWebDashboard
             {
                 encodedMessage.Decode(ServiceMessageContext.GlobalContext, payload, _dataSetReaders.Values.ToArray());
 
+                string publisherID;
+                if (encodedMessage is JsonNetworkMessage)
+                {
+                    publisherID = ((JsonNetworkMessage)encodedMessage).PublisherId.ToString();
+                }
+                else
+                {
+                    publisherID = ((UadpNetworkMessage)encodedMessage).PublisherId.ToString();
+                }
+
                 OpcUaPubSubMessageModel publisherMessage = new OpcUaPubSubMessageModel();
                 publisherMessage.Messages = new List<Message>();
                 foreach (UaDataSetMessage datasetmessage in encodedMessage.DataSetMessages)
@@ -126,7 +136,7 @@ namespace OpcUaWebDashboard
                     {
                         foreach (Field field in datasetmessage.DataSet.Fields)
                         {
-                            pubSubMessage.Payload.Add(field.FieldMetaData.Name, field.Value);
+                            pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name, field.Value);
                         }
                         publisherMessage.Messages.Add(pubSubMessage);
                     }
@@ -161,63 +171,66 @@ namespace OpcUaWebDashboard
                             // keep the original node ID as the display name
                         }
 
-                        if (message.Payload[nodeId].SourceTimestamp == DateTime.MinValue)
+                        if (message.Payload[nodeId] != null)
                         {
-                            // use the IoT Hub enqueued time if the OPC UA timestamp is not present
-                            message.Payload[nodeId].SourceTimestamp = enqueueTime;
-                        }
-
-                        try
-                        {
-                            string timeStamp = message.Payload[nodeId].SourceTimestamp.ToString();
-                            string value = message.Payload[nodeId].Value.ToString();
-
-                            lock (_hubClient.TableEntries)
+                            if (message.Payload[nodeId].SourceTimestamp == DateTime.MinValue)
                             {
-                                if (_hubClient.TableEntries.ContainsKey(displayName))
-                                {
-                                    _hubClient.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
-                                }
-                                else
-                                {
-                                    _hubClient.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
-                                }
+                                // use the IoT Hub enqueued time if the OPC UA timestamp is not present
+                                message.Payload[nodeId].SourceTimestamp = enqueueTime;
+                            }
 
-                                float floatValue;
-                                if (float.TryParse(value, out floatValue))
+                            try
+                            {
+                                string timeStamp = message.Payload[nodeId].SourceTimestamp.ToString();
+                                string value = message.Payload[nodeId].Value.ToString();
+
+                                lock (_hubClient.TableEntries)
                                 {
-                                    // create a keys array as index from our display names
-                                    List<string> keys = new List<string>();
-                                    foreach (string displayNameAsKey in _hubClient.TableEntries.Keys)
+                                    if (_hubClient.TableEntries.ContainsKey(displayName))
                                     {
-                                        keys.Add(displayNameAsKey);
+                                        _hubClient.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
+                                    }
+                                    else
+                                    {
+                                        _hubClient.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
                                     }
 
-                                    // check if we have to create an initially blank entry first
-                                    if (!_hubClient.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hubClient.ChartEntries[timeStamp].Length))
+                                    float floatValue;
+                                    if (float.TryParse(value, out floatValue))
                                     {
-                                        string[] blankValues = new string[_hubClient.TableEntries.Count];
-                                        for (int i = 0; i < blankValues.Length; i++)
+                                        // create a keys array as index from our display names
+                                        List<string> keys = new List<string>();
+                                        foreach (string displayNameAsKey in _hubClient.TableEntries.Keys)
                                         {
-                                            blankValues[i] = "NaN";
+                                            keys.Add(displayNameAsKey);
                                         }
 
-                                        if (_hubClient.ChartEntries.ContainsKey(timeStamp))
+                                        // check if we have to create an initially blank entry first
+                                        if (!_hubClient.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hubClient.ChartEntries[timeStamp].Length))
                                         {
-                                            _hubClient.ChartEntries.Remove(timeStamp);
+                                            string[] blankValues = new string[_hubClient.TableEntries.Count];
+                                            for (int i = 0; i < blankValues.Length; i++)
+                                            {
+                                                blankValues[i] = "NaN";
+                                            }
+
+                                            if (_hubClient.ChartEntries.ContainsKey(timeStamp))
+                                            {
+                                                _hubClient.ChartEntries.Remove(timeStamp);
+                                            }
+
+                                            _hubClient.ChartEntries.Add(timeStamp, blankValues);
                                         }
 
-                                        _hubClient.ChartEntries.Add(timeStamp, blankValues);
+                                        _hubClient.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
                                     }
-
-                                    _hubClient.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
                                 }
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            // ignore this item
-                            Trace.TraceInformation($"Cannot add item {nodeId}: {ex.Message}");
+                            catch (Exception ex)
+                            {
+                                // ignore this item
+                                Trace.TraceInformation($"Cannot add item {nodeId}: {ex.Message}");
+                            }
                         }
                     }
                 }

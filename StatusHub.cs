@@ -55,7 +55,7 @@ namespace OpcUaWebDashboard
         {
             // create HTML table
             StringBuilder sb = new StringBuilder();
-            sb.Append("<table width='800px' cellpadding='3' cellspacing='3'>");
+            sb.Append("<table width='1000px' cellpadding='3' cellspacing='3'>");
 
             // header
             sb.Append("<tr>");
@@ -69,7 +69,7 @@ namespace OpcUaWebDashboard
             {
                 sb.Append("<tr>");
                 sb.Append("<td style='width:400px'>" + item.Key + "</td>");
-                sb.Append("<td style='width:200px'>" + item.Value.Item1 + "</td>");
+                sb.Append("<td style='width:400px'>" + item.Value.Item1 + "</td>");
                 sb.Append("<td style='width:200px'>" + item.Value.Item2 + "</td>");
                 sb.Append("</tr>");
             }
