@@ -116,7 +116,7 @@ namespace OpcUaWebDashboard
         // handles all incoming messages
         private static async Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs args)
         {
-            Trace.TraceInformation($"Received message from topic: {args.ApplicationMessage.Topic} and payload: {args.ApplicationMessage.ConvertPayloadToString()}");
+            Trace.TraceInformation($"Received message from topic: {args.ApplicationMessage.Topic}");
 
             try
             {

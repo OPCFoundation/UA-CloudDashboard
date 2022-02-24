@@ -564,7 +564,10 @@ namespace Opc.Ua.PubSub.Encoding
                 for (int i = 0; i < dataValues.Count; i++)
                 {                
                     Field dataField = new Field();
-                    dataField.FieldMetaData = dataSetMetaData?.Fields[i];
+                    if (dataSetMetaData?.Fields.Count > 0)
+                    {
+                        dataField.FieldMetaData = dataSetMetaData?.Fields[i];
+                    }
                     dataField.Value = dataValues[i];
 
                     if (targetVariablesData != null && targetVariablesData.TargetVariables != null

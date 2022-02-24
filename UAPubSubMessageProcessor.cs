@@ -23,6 +23,9 @@ namespace OpcUaWebDashboard
             IServiceProvider serviceProvider = Program.AppHost.Services;
             _hubClient = new StatusHubClient((IHubContext<StatusHub>)serviceProvider.GetService(typeof(IHubContext<StatusHub>)));
             _dataSetReaders = new Dictionary<string, DataSetReaderDataType>();
+
+            AddUadpDataSetReader("generic_uadp", new DataSetMetaDataType());
+            AddJsonDataSetReader("generic_json", new DataSetMetaDataType());
         }
 
         public void ProcessMessage(byte[] payload, DateTime receivedTime, string contentType)
@@ -33,7 +36,7 @@ namespace OpcUaWebDashboard
                 message = Encoding.UTF8.GetString(payload);
                 if (message != null)
                 {
-                    if ((contentType != null) && (contentType == "application/json") || message.StartsWith('{'))
+                    if (((contentType != null) && (contentType == "application/json")) || message.StartsWith('{'))
                     { 
                         DecodeMessage(payload, receivedTime, new JsonNetworkMessage());
                     }
@@ -49,6 +52,68 @@ namespace OpcUaWebDashboard
             }
         }
 
+        private void AddUadpDataSetReader(string name, DataSetMetaDataType metadata)
+        {
+            DataSetReaderDataType uadpDataSetReader = new DataSetReaderDataType();
+            uadpDataSetReader.Name = name;
+            uadpDataSetReader.Enabled = true;
+            uadpDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.RawData;
+            uadpDataSetReader.KeyFrameCount = 1;
+            uadpDataSetReader.TransportSettings = new ExtensionObject(new BrokerDataSetReaderTransportDataType());
+            uadpDataSetReader.DataSetMetaData = metadata;
+
+            UadpDataSetReaderMessageDataType uadpDataSetReaderMessageSettings = new UadpDataSetReaderMessageDataType()
+            {
+                NetworkMessageContentMask = (uint)(UadpNetworkMessageContentMask.NetworkMessageNumber | UadpNetworkMessageContentMask.PublisherId | UadpNetworkMessageContentMask.DataSetClassId),
+                DataSetMessageContentMask = (uint)UadpDataSetMessageContentMask.None,
+            };
+            uadpDataSetReader.MessageSettings = new ExtensionObject(uadpDataSetReaderMessageSettings);
+
+            TargetVariablesDataType subscribedDataSet2 = new TargetVariablesDataType();
+            subscribedDataSet2.TargetVariables = new FieldTargetDataTypeCollection();
+            uadpDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet2);
+
+            if (_dataSetReaders.ContainsKey(name))
+            {
+                _dataSetReaders[name] = uadpDataSetReader;
+            }
+            else
+            {
+                _dataSetReaders.Add(name, uadpDataSetReader);
+            }
+        }
+
+        private void AddJsonDataSetReader(string name, DataSetMetaDataType metadata)
+        {
+            DataSetReaderDataType jsonDataSetReader = new DataSetReaderDataType();
+            jsonDataSetReader.Name = name;
+            jsonDataSetReader.Enabled = true;
+            jsonDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.RawData;
+            jsonDataSetReader.KeyFrameCount = 1;
+            jsonDataSetReader.TransportSettings = new ExtensionObject(new BrokerDataSetReaderTransportDataType());
+            jsonDataSetReader.DataSetMetaData = metadata;
+
+            JsonDataSetReaderMessageDataType jsonDataSetReaderMessageSettings = new JsonDataSetReaderMessageDataType()
+            {
+                NetworkMessageContentMask = (uint)(JsonNetworkMessageContentMask.NetworkMessageHeader | JsonNetworkMessageContentMask.DataSetClassId | JsonNetworkMessageContentMask.PublisherId),
+                DataSetMessageContentMask = (uint)JsonDataSetMessageContentMask.None,
+            };
+            jsonDataSetReader.MessageSettings = new ExtensionObject(jsonDataSetReaderMessageSettings);
+
+            TargetVariablesDataType subscribedDataSet1 = new TargetVariablesDataType();
+            subscribedDataSet1.TargetVariables = new FieldTargetDataTypeCollection();
+            jsonDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet1);
+
+            if (_dataSetReaders.ContainsKey(name))
+            {
+                _dataSetReaders[name] = jsonDataSetReader;
+            }
+            else
+            {
+                _dataSetReaders.Add(name, jsonDataSetReader);
+            }
+        }
+
         private void DecodeMessage(byte[] payload, DateTime receivedTime, UaNetworkMessage encodedMessage)
         {
             encodedMessage.Decode(ServiceMessageContext.GlobalContext, payload, null);
@@ -57,65 +122,17 @@ namespace OpcUaWebDashboard
                 // setup dataset reader
                 if (encodedMessage is JsonNetworkMessage)
                 {
-                    DataSetReaderDataType jsonDataSetReader = new DataSetReaderDataType();
-                    jsonDataSetReader.Name = "dataSetReader";
-                    jsonDataSetReader.Enabled = true;
-                    jsonDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.RawData;
-                    jsonDataSetReader.KeyFrameCount = 1;
-                    jsonDataSetReader.TransportSettings = new ExtensionObject(new BrokerDataSetReaderTransportDataType());
-                    jsonDataSetReader.DataSetMetaData = encodedMessage.DataSetMetaData;
-
-                    DataSetReaderMessageDataType jsonDataSetReaderMessageSettings = new UadpDataSetReaderMessageDataType()
-                    {
-                        NetworkMessageContentMask = (uint)(UadpNetworkMessageContentMask.PublisherId | UadpNetworkMessageContentMask.WriterGroupId),
-                        DataSetMessageContentMask = (uint)UadpDataSetMessageContentMask.None,
-                    };
-                    jsonDataSetReader.MessageSettings = new ExtensionObject(jsonDataSetReaderMessageSettings);
-
-                    TargetVariablesDataType subscribedDataSet1 = new TargetVariablesDataType();
-                    subscribedDataSet1.TargetVariables = new FieldTargetDataTypeCollection();
-                    jsonDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet1);
-
-                    if (_dataSetReaders.ContainsKey(((JsonNetworkMessage)encodedMessage).PublisherId))
-                    {
-                        _dataSetReaders[((JsonNetworkMessage)encodedMessage).PublisherId] = jsonDataSetReader;
-                    }
-                    else
-                    {
-                        _dataSetReaders.Add(((JsonNetworkMessage)encodedMessage).PublisherId, jsonDataSetReader);
-                    }
+                    AddJsonDataSetReader(((JsonNetworkMessage)encodedMessage).PublisherId.ToString(), encodedMessage.DataSetMetaData);
                 }
                 else
                 {
-                    DataSetReaderDataType uadpDataSetReader = new DataSetReaderDataType();
-                    uadpDataSetReader.Name = "dataSetReader";
-                    uadpDataSetReader.Enabled = true;
-                    uadpDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.RawData;
-                    uadpDataSetReader.KeyFrameCount = 1;
-                    uadpDataSetReader.TransportSettings = new ExtensionObject(new BrokerDataSetReaderTransportDataType());
-                    uadpDataSetReader.DataSetMetaData = encodedMessage.DataSetMetaData;
-
-                    DataSetReaderMessageDataType uadpDataSetReaderMessageSettings = new JsonDataSetReaderMessageDataType()
-                    {
-                        NetworkMessageContentMask = (uint)(JsonNetworkMessageContentMask.PublisherId | JsonNetworkMessageContentMask.NetworkMessageHeader),
-                        DataSetMessageContentMask = (uint)JsonDataSetMessageContentMask.None,
-                    };
-                    uadpDataSetReader.MessageSettings = new ExtensionObject(uadpDataSetReaderMessageSettings);
-
-                    TargetVariablesDataType subscribedDataSet2 = new TargetVariablesDataType();
-                    subscribedDataSet2.TargetVariables = new FieldTargetDataTypeCollection();
-                    uadpDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet2);
-
-                    if (!_dataSetReaders.ContainsKey(((UadpNetworkMessage)encodedMessage).PublisherId.ToString()))
-                    {
-                        _dataSetReaders.Add(((UadpNetworkMessage)encodedMessage).PublisherId.ToString(), uadpDataSetReader);
-                    }
+                    AddUadpDataSetReader(((UadpNetworkMessage)encodedMessage).PublisherId.ToString(), encodedMessage.DataSetMetaData);
                 }
             }
             else
             {
                 encodedMessage.Decode(ServiceMessageContext.GlobalContext, payload, _dataSetReaders.Values.ToArray());
-
+                
                 string publisherID;
                 if (encodedMessage is JsonNetworkMessage)
                 {
@@ -134,9 +151,17 @@ namespace OpcUaWebDashboard
                     pubSubMessage.Payload = new Dictionary<string, DataValue>();
                     if (datasetmessage.DataSet != null)
                     {
-                        foreach (Field field in datasetmessage.DataSet.Fields)
+                        for (int i = 0; i < datasetmessage.DataSet.Fields.Count(); i++)
                         {
-                            pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name, field.Value);
+                            Field field = datasetmessage.DataSet.Fields[i];
+                            if (field.FieldMetaData == null)
+                            {
+                                pubSubMessage.Payload.Add(publisherID + "_field" + (i + 1).ToString(), field.Value);
+                            }
+                            else
+                            {
+                                pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name, field.Value);
+                            }
                         }
                         publisherMessage.Messages.Add(pubSubMessage);
                     }
@@ -182,47 +207,50 @@ namespace OpcUaWebDashboard
                             try
                             {
                                 string timeStamp = message.Payload[nodeId].SourceTimestamp.ToString();
-                                string value = message.Payload[nodeId].Value.ToString();
-
-                                lock (_hubClient.TableEntries)
+                                if (message.Payload[nodeId].Value != null)
                                 {
-                                    if (_hubClient.TableEntries.ContainsKey(displayName))
-                                    {
-                                        _hubClient.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
-                                    }
-                                    else
-                                    {
-                                        _hubClient.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
-                                    }
+                                    string value = message.Payload[nodeId].Value.ToString();
 
-                                    float floatValue;
-                                    if (float.TryParse(value, out floatValue))
+                                    lock (_hubClient.TableEntries)
                                     {
-                                        // create a keys array as index from our display names
-                                        List<string> keys = new List<string>();
-                                        foreach (string displayNameAsKey in _hubClient.TableEntries.Keys)
+                                        if (_hubClient.TableEntries.ContainsKey(displayName))
                                         {
-                                            keys.Add(displayNameAsKey);
+                                            _hubClient.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
+                                        }
+                                        else
+                                        {
+                                            _hubClient.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
                                         }
 
-                                        // check if we have to create an initially blank entry first
-                                        if (!_hubClient.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hubClient.ChartEntries[timeStamp].Length))
+                                        float floatValue;
+                                        if (float.TryParse(value, out floatValue))
                                         {
-                                            string[] blankValues = new string[_hubClient.TableEntries.Count];
-                                            for (int i = 0; i < blankValues.Length; i++)
+                                            // create a keys array as index from our display names
+                                            List<string> keys = new List<string>();
+                                            foreach (string displayNameAsKey in _hubClient.TableEntries.Keys)
                                             {
-                                                blankValues[i] = "NaN";
+                                                keys.Add(displayNameAsKey);
                                             }
 
-                                            if (_hubClient.ChartEntries.ContainsKey(timeStamp))
+                                            // check if we have to create an initially blank entry first
+                                            if (!_hubClient.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hubClient.ChartEntries[timeStamp].Length))
                                             {
-                                                _hubClient.ChartEntries.Remove(timeStamp);
+                                                string[] blankValues = new string[_hubClient.TableEntries.Count];
+                                                for (int i = 0; i < blankValues.Length; i++)
+                                                {
+                                                    blankValues[i] = "NaN";
+                                                }
+
+                                                if (_hubClient.ChartEntries.ContainsKey(timeStamp))
+                                                {
+                                                    _hubClient.ChartEntries.Remove(timeStamp);
+                                                }
+
+                                                _hubClient.ChartEntries.Add(timeStamp, blankValues);
                                             }
 
-                                            _hubClient.ChartEntries.Add(timeStamp, blankValues);
+                                            _hubClient.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
                                         }
-
-                                        _hubClient.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
                                     }
                                 }
                             }
