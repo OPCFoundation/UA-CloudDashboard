@@ -38,9 +38,9 @@ namespace OpcUaWebDashboard
                     .WithTcpServer(Environment.GetEnvironmentVariable("MQTT_BROKER_NAME"), int.Parse(Environment.GetEnvironmentVariable("MQTT_BROKER_PORT")))
                     .WithTls(new MqttClientOptionsBuilderTlsParameters { UseTls = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MQTT_USE_TLS")) })
                     .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V311)
-                    .WithCommunicationTimeout(TimeSpan.FromSeconds(30))
-                    .WithKeepAlivePeriod(TimeSpan.FromSeconds(300))
-                    .WithCleanSession(false) // keep existing subscriptions 
+                    .WithCommunicationTimeout(TimeSpan.FromSeconds(10))
+                    .WithKeepAlivePeriod(TimeSpan.FromSeconds(100))
+                    .WithCleanSession(true) // clear existing subscriptions 
                     .WithCredentials(Environment.GetEnvironmentVariable("MQTT_USERNAME"), Environment.GetEnvironmentVariable("MQTT_PASSWORD"));
 
                 // setup disconnection handling
