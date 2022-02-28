@@ -20,7 +20,7 @@
     <PackageReference Include="Microsoft.Azure.EventHubs.Processor" Version="4.3.2" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.14.0" />
     <PackageReference Include="MQTTnet" Version="3.1.2" />
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.4.368.33" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Symbols" Version="1.4.368.33" />
   </ItemGroup>
 
   <ItemGroup>
