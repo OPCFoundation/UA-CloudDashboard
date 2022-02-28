@@ -173,15 +173,15 @@ namespace Opc.Ua.PubSub
         /// <summary>
         /// Discovery Response message - PublisherEndpoint
         /// </summary>
-        PublisherEndpoint = 2,
+        PublisherEndpoint = 1,
         /// <summary>
         /// Discovery Response message - MetaData
         /// </summary>
-        DataSetMetaData = 4,
+        DataSetMetaData = 2,
         /// <summary>
         /// Discovery Response message - MetaData
         /// </summary>
-        DataSetWriterConfiguration = 8
+        DataSetWriterConfiguration = 3
     }
 
     /// <summary>
