@@ -29,6 +29,14 @@ namespace OpcUaWebDashboard
             {
                 _uaMessageProcessor = (IUAPubSubMessageProcessor)Program.AppHost.Services.GetService(typeof(IUAPubSubMessageProcessor));
 
+                // disconnect if still connected
+                if ((_client != null) && _client.IsConnected)
+                {
+                    _client.DisconnectAsync().GetAwaiter().GetResult();
+                    _client.Dispose();
+                    _client = null;
+                }
+
                 // create MQTT client
                 _client = new MqttFactory().CreateMqttClient();
                 _client.UseApplicationMessageReceivedHandler(msg => HandleMessageAsync(msg));
@@ -48,8 +56,12 @@ namespace OpcUaWebDashboard
                 {
                     Trace.TraceInformation($"Disconnected from MQTT broker: {disconnectArgs.Reason}");
 
-                // simply reconnect again
-                Connect();
+                    // wait a 5 seconds, then simply reconnect again, if needed
+                    Task.Delay(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+                    if (!_client.IsConnected)
+                    {
+                        Connect();
+                    }
                 });
 
                 try
@@ -73,6 +85,8 @@ namespace OpcUaWebDashboard
                     {
                         throw new ApplicationException("Failed to subscribe");
                     }
+
+                    Trace.TraceInformation("Connected to MQTT broker.");
                 }
                 catch (MqttConnectingFailedException ex)
                 {
