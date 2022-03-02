@@ -58,7 +58,7 @@ namespace OpcUaWebDashboard
 
                     // wait a 5 seconds, then simply reconnect again, if needed
                     Task.Delay(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
-                    if (!_client.IsConnected)
+                    if ((_client == null) || !_client.IsConnected)
                     {
                         Connect();
                     }

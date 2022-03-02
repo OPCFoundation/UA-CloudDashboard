@@ -23,9 +23,6 @@ namespace OpcUaWebDashboard
             IServiceProvider serviceProvider = Program.AppHost.Services;
             _hubClient = new StatusHubClient((IHubContext<StatusHub>)serviceProvider.GetService(typeof(IHubContext<StatusHub>)));
             _dataSetReaders = new Dictionary<string, DataSetReaderDataType>();
-
-            AddUadpDataSetReader("generic_uadp", new DataSetMetaDataType());
-            AddJsonDataSetReader("generic_json", new DataSetMetaDataType());
         }
 
         public void ProcessMessage(byte[] payload, DateTime receivedTime, string contentType)
@@ -57,7 +54,7 @@ namespace OpcUaWebDashboard
             DataSetReaderDataType uadpDataSetReader = new DataSetReaderDataType();
             uadpDataSetReader.Name = name;
             uadpDataSetReader.Enabled = true;
-            uadpDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.RawData;
+            uadpDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.None;
             uadpDataSetReader.KeyFrameCount = 1;
             uadpDataSetReader.TransportSettings = new ExtensionObject(new BrokerDataSetReaderTransportDataType());
             uadpDataSetReader.DataSetMetaData = metadata;
@@ -88,7 +85,7 @@ namespace OpcUaWebDashboard
             DataSetReaderDataType jsonDataSetReader = new DataSetReaderDataType();
             jsonDataSetReader.Name = name;
             jsonDataSetReader.Enabled = true;
-            jsonDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.RawData;
+            jsonDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.None;
             jsonDataSetReader.KeyFrameCount = 1;
             jsonDataSetReader.TransportSettings = new ExtensionObject(new BrokerDataSetReaderTransportDataType());
             jsonDataSetReader.DataSetMetaData = metadata;
