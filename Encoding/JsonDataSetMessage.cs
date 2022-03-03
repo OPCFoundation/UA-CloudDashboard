@@ -244,122 +244,123 @@ namespace Opc.Ua.PubSub.Encoding
         }
 
         /// <summary>
+        /// Decide a Complex Field
+        /// </summary>
+        /// <param name="field"></param>
+        /// <returns></returns>
+        private List<DataValue> DecodeComplexField(Dictionary<string, object> complexType)
+        {
+            List<DataValue> result = new List<DataValue>();
+
+            foreach (KeyValuePair<string, object> complexSubType in complexType)
+            {
+                if (complexSubType.Value is Dictionary<string, object>)
+                {
+                    result.AddRange(DecodeComplexField((Dictionary<string, object>)complexSubType.Value));
+                }
+                else
+                {
+                    result.Add(new DataValue(new Variant(complexSubType.Value, TypeInfo.Construct(complexSubType.Value))));
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Decode a Field
+        /// </summary>
+        /// <param name="field"></param>
+        /// <returns></returns>
+        private List<DataValue> DecodeField(Dictionary<string, object> field)
+        {
+            List<DataValue> result = new List<DataValue>();
+
+            if (field != null)
+            {
+                // check for non-reversible encoding
+                DataValue newValue = null;
+                if (field.ContainsKey("Value"))
+                {
+                    // check for complex type
+                    if (field["Value"] is Dictionary<string, object>)
+                    {
+                        result.AddRange(DecodeComplexField((Dictionary<string, object>)field["Value"]));
+                    }
+                    else
+                    {
+                        newValue = new DataValue(new Variant(field["Value"]));
+                    }
+                }
+
+                // check for reversible encoding
+                if (field.ContainsKey("Type") && field.ContainsKey("Body"))
+                {
+                    // check for localized text
+                    if ((Int64)field["Type"] == 21)
+                    {
+                        Dictionary<string, object> localizedText = (Dictionary<string, object>)field["Body"];
+                        if (localizedText.ContainsKey("Text"))
+                        {
+                            newValue = new DataValue(new Variant(localizedText["Text"], TypeInfo.Construct(localizedText["Text"])));
+                        }
+                    }
+
+                    // check for complex type
+                    if (field["Body"] is Dictionary<string, object>)
+                    {
+                        Dictionary<string, object> complexType = (Dictionary<string, object>)field["Body"];
+                        if (complexType.ContainsKey("Type") && complexType.ContainsKey("Body"))
+                        {
+                            newValue = new DataValue(new Variant(complexType["Body"], TypeInfo.Construct(complexType["Body"])));
+                        }
+                    }
+                    else
+                    {
+                        newValue = new DataValue(new Variant(field["Body"], TypeInfo.Construct(field["Body"])));
+                    }
+                }
+
+                // check for source timestamp
+                if ((newValue != null) && field.ContainsKey("SourceTimestamp"))
+                {
+                    newValue.SourceTimestamp = (DateTime)field["SourceTimestamp"];
+                }
+
+                // check for server timestamp
+                if ((newValue != null) && field.ContainsKey("ServerTimestamp"))
+                {
+                    newValue.ServerTimestamp = (DateTime)field["ServerTimestamp"];
+                }
+
+                // add the new value to our collection
+                if (newValue != null)
+                {
+                    result.Add(newValue);
+                }
+            }
+
+            return result;
+        }
+
+
+        /// <summary>
         /// Decode the Content of the Payload and create a DataSet object from it
         /// </summary>
         private DataSet DecodePayloadContent(JsonDecoder jsonDecoder, DataSetReaderDataType dataSetReader)
         {
-            TargetVariablesDataType targetVariablesData =
-                ExtensionObject.ToEncodeable(dataSetReader.SubscribedDataSet)
-                    as TargetVariablesDataType;
-
             DataSetMetaDataType dataSetMetaData = dataSetReader.DataSetMetaData;
 
-            object token;
             List<DataValue> dataValues = new List<DataValue>();
             for (int index = 0; index < dataSetMetaData?.Fields.Count; index++)
             {
                 FieldMetaData fieldMetaData = dataSetMetaData?.Fields[index];
-
+                                
+                object token;
                 if (jsonDecoder.ReadField(fieldMetaData.Name, out token))
                 {
-                    switch (m_fieldTypeEncoding)
-                    {
-                        case FieldTypeEncodingMask.Variant:
-                            Variant variantValue = jsonDecoder.ReadVariant(fieldMetaData.Name);
-                            dataValues.Add(new DataValue(variantValue));
-                            break;
-                        case FieldTypeEncodingMask.RawData:
-                            object value = DecodeRawData(jsonDecoder, dataSetMetaData?.Fields[index], dataSetMetaData?.Fields[index].Name);
-                            dataValues.Add(new DataValue(new Variant(value)));
-                            break;
-                        case FieldTypeEncodingMask.DataValue:
-                            bool wasPush2 = jsonDecoder.PushStructure(fieldMetaData.Name);
-                            DataValue dataValue = new DataValue(Variant.Null);
-                            try
-                            {
-                                if (wasPush2 && jsonDecoder.ReadField("Value", out token))
-                                {
-                                    // the Value was encoded using the non reversible json encoding 
-                                    token = DecodeRawData(jsonDecoder, dataSetMetaData?.Fields[index], "Value");
-                                    dataValue = new DataValue(new Variant(token));
-                                }
-                                else
-                                {
-                                    // handle Good StatusCode that was not encoded
-                                    if (dataSetMetaData?.Fields[index].BuiltInType == (byte)BuiltInType.StatusCode)
-                                    {
-                                        dataValue = new DataValue(new Variant(new StatusCode(StatusCodes.Good)));
-                                    }
-                                }
-
-                                if ((FieldContentMask & DataSetFieldContentMask.StatusCode) != 0)
-                                {
-                                    if (jsonDecoder.ReadField("StatusCode", out token))
-                                    {
-                                        bool wasPush3 = jsonDecoder.PushStructure("StatusCode");
-                                        if (wasPush3)
-                                        {
-                                            dataValue.StatusCode = jsonDecoder.ReadStatusCode("Code");
-                                            jsonDecoder.Pop();
-                                        }
-                                    }
-                                }
-
-                                if ((FieldContentMask & DataSetFieldContentMask.SourceTimestamp) != 0)
-                                {
-                                    dataValue.SourceTimestamp = jsonDecoder.ReadDateTime("SourceTimestamp");
-                                }
-
-                                if ((FieldContentMask & DataSetFieldContentMask.SourcePicoSeconds) != 0)
-                                {
-                                    dataValue.SourcePicoseconds = jsonDecoder.ReadUInt16("SourcePicoseconds");
-                                }
-
-                                if ((FieldContentMask & DataSetFieldContentMask.ServerTimestamp) != 0)
-                                {
-                                    dataValue.ServerTimestamp = jsonDecoder.ReadDateTime("ServerTimestamp");
-                                }
-
-                                if ((FieldContentMask & DataSetFieldContentMask.ServerPicoSeconds) != 0)
-                                {
-                                    dataValue.ServerPicoseconds = jsonDecoder.ReadUInt16("ServerPicoseconds");
-                                }
-                                dataValues.Add(dataValue);
-                            }
-                            finally
-                            {
-                                if (wasPush2)
-                                {
-                                    jsonDecoder.Pop();
-                                }
-                            }
-                            break;
-                    }
+                    dataValues.AddRange(DecodeField((Dictionary<string, object>)token));
                 }
-                else
-                {
-                    switch (m_fieldTypeEncoding)
-                    {
-                        case FieldTypeEncodingMask.Variant:
-                        case FieldTypeEncodingMask.RawData:
-                            // handle StatusCodes.Good which is not encoded and therefore must be created at decode
-                            if (dataSetMetaData?.Fields[index].BuiltInType == (byte)BuiltInType.StatusCode)
-                            {
-                                dataValues.Add(new DataValue(new Variant(new StatusCode(StatusCodes.Good))));
-                            }
-                            else
-                            {
-                                // the field is null
-                                dataValues.Add(new DataValue(Variant.Null));
-                            }
-                            break;
-                    }
-                }
-            }
-
-            if (dataValues.Count != dataSetMetaData?.Fields.Count)
-            {
-                return null;
             }
 
             //build the DataSet Fields collection based on the decoded values and the target 
@@ -367,16 +368,9 @@ namespace Opc.Ua.PubSub.Encoding
             for (int i = 0; i < dataValues.Count; i++)
             {
                 Field dataField = new Field();
-                dataField.FieldMetaData = dataSetMetaData?.Fields[i];
+                //TODO for complex types: dataField.FieldMetaData = dataSetMetaData?.Fields[i];
                 dataField.Value = dataValues[i];
 
-                if (targetVariablesData != null && targetVariablesData.TargetVariables != null
-                    && i < targetVariablesData.TargetVariables.Count)
-                {
-                    // remember the target Attribute and target nodeId
-                    dataField.TargetAttribute = targetVariablesData.TargetVariables[i].AttributeId;
-                    dataField.TargetNodeId = targetVariablesData.TargetVariables[i].TargetNodeId;
-                }
                 dataFields.Add(dataField);
             }
 
@@ -386,6 +380,7 @@ namespace Opc.Ua.PubSub.Encoding
             dataSet.Fields = dataFields.ToArray();
             dataSet.DataSetWriterId = DataSetWriterId;
             dataSet.SequenceNumber = SequenceNumber;
+
             return dataSet;
         }
         #endregion
@@ -569,44 +564,29 @@ namespace Opc.Ua.PubSub.Encoding
         private void DecodeDataSetMessageHeader(JsonDecoder jsonDecoder)
         {
             object token = null;
-            if ((DataSetMessageContentMask & JsonDataSetMessageContentMask.DataSetWriterId) != 0)
+            if (jsonDecoder.ReadField(nameof(DataSetWriterId), out token))
             {
-                if (jsonDecoder.ReadField(nameof(DataSetWriterId), out token))
-                {
-                    DataSetWriterId = jsonDecoder.ReadUInt16(nameof(DataSetWriterId));
-                }
+                DataSetWriterId = jsonDecoder.ReadUInt16(nameof(DataSetWriterId));
             }
-
-            if ((DataSetMessageContentMask & JsonDataSetMessageContentMask.SequenceNumber) != 0)
+            
+            if (jsonDecoder.ReadField(nameof(SequenceNumber), out token))
             {
-                if (jsonDecoder.ReadField(nameof(SequenceNumber), out token))
-                {
-                    SequenceNumber = jsonDecoder.ReadUInt32(nameof(SequenceNumber));
-                }
+                SequenceNumber = jsonDecoder.ReadUInt32(nameof(SequenceNumber));
             }
-
-            if ((DataSetMessageContentMask & JsonDataSetMessageContentMask.MetaDataVersion) != 0)
+            
+            if (jsonDecoder.ReadField(nameof(MetaDataVersion), out token))
             {
-                if (jsonDecoder.ReadField(nameof(MetaDataVersion), out token))
-                {
-                    MetaDataVersion = jsonDecoder.ReadEncodeable(nameof(MetaDataVersion), typeof(ConfigurationVersionDataType)) as ConfigurationVersionDataType;
-                }
+                MetaDataVersion = jsonDecoder.ReadEncodeable(nameof(MetaDataVersion), typeof(ConfigurationVersionDataType)) as ConfigurationVersionDataType;
             }
-
-            if ((DataSetMessageContentMask & JsonDataSetMessageContentMask.Timestamp) != 0)
+            
+            if (jsonDecoder.ReadField(nameof(Timestamp), out token))
             {
-                if (jsonDecoder.ReadField(nameof(Timestamp), out token))
-                {
-                    Timestamp = jsonDecoder.ReadDateTime(nameof(Timestamp));
-                }
+                Timestamp = jsonDecoder.ReadDateTime(nameof(Timestamp));
             }
-
-            if ((DataSetMessageContentMask & JsonDataSetMessageContentMask.Status) != 0)
+            
+            if (jsonDecoder.ReadField(nameof(Status), out token))
             {
-                if (jsonDecoder.ReadField(nameof(Status), out token))
-                {
-                    Status = jsonDecoder.ReadStatusCode(nameof(Status));
-                }
+                Status = jsonDecoder.ReadStatusCode(nameof(Status));
             }
         }
 

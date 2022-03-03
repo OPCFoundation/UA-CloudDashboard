@@ -59,7 +59,7 @@ namespace OpcUaWebDashboard
 
             // header
             sb.Append("<tr>");
-            sb.Append("<th><b>OPC UA Node ID</b></th>");
+            sb.Append("<th><b>Name</b></th>");
             sb.Append("<th><b>Latest Value</b></th>");
             sb.Append("<th><b>Time Stamp</b></th>");
             sb.Append("</tr>");

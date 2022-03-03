@@ -92,7 +92,7 @@ namespace OpcUaWebDashboard
 
             JsonDataSetReaderMessageDataType jsonDataSetReaderMessageSettings = new JsonDataSetReaderMessageDataType()
             {
-                NetworkMessageContentMask = (uint)(JsonNetworkMessageContentMask.NetworkMessageHeader | JsonNetworkMessageContentMask.DataSetClassId | JsonNetworkMessageContentMask.PublisherId),
+                NetworkMessageContentMask = (uint)(JsonNetworkMessageContentMask.NetworkMessageHeader | JsonNetworkMessageContentMask.DataSetMessageHeader | JsonNetworkMessageContentMask.DataSetClassId | JsonNetworkMessageContentMask.PublisherId),
                 DataSetMessageContentMask = (uint)JsonDataSetMessageContentMask.None,
             };
             jsonDataSetReader.MessageSettings = new ExtensionObject(jsonDataSetReaderMessageSettings);
@@ -119,11 +119,15 @@ namespace OpcUaWebDashboard
                 // setup dataset reader
                 if (encodedMessage is JsonNetworkMessage)
                 {
-                    AddJsonDataSetReader(((JsonNetworkMessage)encodedMessage).PublisherId.ToString(), encodedMessage.DataSetMetaData);
+                    JsonNetworkMessage jsonMessage = (JsonNetworkMessage)encodedMessage;
+                    string name = jsonMessage.PublisherId + ":" + jsonMessage.DataSetWriterId;
+                    AddJsonDataSetReader(name, encodedMessage.DataSetMetaData);
                 }
                 else
                 {
-                    AddUadpDataSetReader(((UadpNetworkMessage)encodedMessage).PublisherId.ToString(), encodedMessage.DataSetMetaData);
+                    UadpNetworkMessage uadpMessage = (UadpNetworkMessage)encodedMessage;
+                    string name = uadpMessage.PublisherId + ":" + uadpMessage.DataSetWriterId;
+                    AddUadpDataSetReader(name, encodedMessage.DataSetMetaData);
                 }
             }
             else
@@ -151,6 +155,12 @@ namespace OpcUaWebDashboard
                         for (int i = 0; i < datasetmessage.DataSet.Fields.Count(); i++)
                         {
                             Field field = datasetmessage.DataSet.Fields[i];
+
+                            if (field.Value.SourceTimestamp == DateTime.MinValue)
+                            {
+                                field.Value.SourceTimestamp = datasetmessage.Timestamp;
+                            }
+
                             if (field.FieldMetaData == null)
                             {
                                 pubSubMessage.Payload.Add(publisherID + "_field" + (i + 1).ToString(), field.Value);
