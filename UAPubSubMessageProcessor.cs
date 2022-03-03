@@ -163,11 +163,11 @@ namespace OpcUaWebDashboard
 
                             if (field.FieldMetaData == null)
                             {
-                                pubSubMessage.Payload.Add(publisherID + "_field" + (i + 1).ToString(), field.Value);
+                                pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
                             }
                             else
                             {
-                                pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name, field.Value);
+                                pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_" + field.FieldMetaData.Name, field.Value);
                             }
                         }
                         publisherMessage.Messages.Add(pubSubMessage);
