@@ -23,6 +23,10 @@ namespace OpcUaWebDashboard
             IServiceProvider serviceProvider = Program.AppHost.Services;
             _hubClient = new StatusHubClient((IHubContext<StatusHub>)serviceProvider.GetService(typeof(IHubContext<StatusHub>)));
             _dataSetReaders = new Dictionary<string, DataSetReaderDataType>();
+
+            // add default dataset readers
+            AddUadpDataSetReader("default", new DataSetMetaDataType());
+            AddJsonDataSetReader("default", new DataSetMetaDataType());
         }
 
         public void ProcessMessage(byte[] payload, DateTime receivedTime, string contentType)
