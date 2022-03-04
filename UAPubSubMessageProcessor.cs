@@ -163,11 +163,33 @@ namespace OpcUaWebDashboard
 
                             if (field.FieldMetaData == null)
                             {
-                                pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
+                                if (field.Value.WrappedValue.Value is Variant[])
+                                {
+                                    foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
+                                    {
+                                        string[] keyValue = (string[])variant.Value;
+                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_field" + (i + 1).ToString() + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                    }
+                                }
+                                else
+                                {
+                                    pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
+                                }
                             }
                             else
                             {
-                                pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_" + field.FieldMetaData.Name, field.Value);
+                                if (field.Value.WrappedValue.Value is Variant[])
+                                {
+                                    foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
+                                    {
+                                        string[] keyValue = (string[])variant.Value;
+                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_" + field.FieldMetaData.Name + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                    }
+                                }
+                                else
+                                {
+                                    pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_" + field.FieldMetaData.Name, field.Value);
+                                }
                             }
                         }
                         publisherMessage.Messages.Add(pubSubMessage);

@@ -244,27 +244,30 @@ namespace Opc.Ua.PubSub.Encoding
         }
 
         /// <summary>
-        /// Decide a Complex Field
+        /// Flatten a Complex Field
         /// </summary>
         /// <param name="field"></param>
         /// <returns></returns>
-        private List<DataValue> DecodeComplexField(Dictionary<string, object> complexType)
+        private Variant[] FlattenComplexField(Dictionary<string, object> complexType)
         {
-            List<DataValue> result = new List<DataValue>();
+            List<Variant> result = new List<Variant>();
 
             foreach (KeyValuePair<string, object> complexSubType in complexType)
             {
                 if (complexSubType.Value is Dictionary<string, object>)
                 {
-                    result.AddRange(DecodeComplexField((Dictionary<string, object>)complexSubType.Value));
+                    result.AddRange(FlattenComplexField((Dictionary<string, object>)complexSubType.Value));
                 }
                 else
                 {
-                    result.Add(new DataValue(new Variant(complexSubType.Value, TypeInfo.Construct(complexSubType.Value))));
+                    string[] keyValue = new string[2];
+                    keyValue[0] = complexSubType.Key;
+                    keyValue[1] = complexSubType.Value.ToString();
+                    result.Add(new Variant(keyValue, TypeInfo.Construct(keyValue)));
                 }
             }
 
-            return result;
+            return result.ToArray();
         }
 
         /// <summary>
@@ -285,7 +288,7 @@ namespace Opc.Ua.PubSub.Encoding
                     // check for complex type
                     if (field["Value"] is Dictionary<string, object>)
                     {
-                        result.AddRange(DecodeComplexField((Dictionary<string, object>)field["Value"]));
+                        newValue = new DataValue(new Variant(FlattenComplexField((Dictionary<string, object>)field["Value"])));
                     }
                     else
                     {
@@ -309,11 +312,7 @@ namespace Opc.Ua.PubSub.Encoding
                     // check for complex type
                     if (field["Body"] is Dictionary<string, object>)
                     {
-                        Dictionary<string, object> complexType = (Dictionary<string, object>)field["Body"];
-                        if (complexType.ContainsKey("Type") && complexType.ContainsKey("Body"))
-                        {
-                            newValue = new DataValue(new Variant(complexType["Body"], TypeInfo.Construct(complexType["Body"])));
-                        }
+                        newValue = new DataValue(new Variant(FlattenComplexField((Dictionary<string, object>)field["Body"])));
                     }
                     else
                     {
@@ -368,7 +367,7 @@ namespace Opc.Ua.PubSub.Encoding
             for (int i = 0; i < dataValues.Count; i++)
             {
                 Field dataField = new Field();
-                //TODO for complex types: dataField.FieldMetaData = dataSetMetaData?.Fields[i];
+                dataField.FieldMetaData = dataSetMetaData?.Fields[i];
                 dataField.Value = dataValues[i];
 
                 dataFields.Add(dataField);
