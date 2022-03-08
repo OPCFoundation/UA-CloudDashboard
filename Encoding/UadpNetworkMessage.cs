@@ -457,16 +457,17 @@ namespace Opc.Ua.PubSub.Encoding
                 }
             }
         }
-            #endregion
 
-            #region Private Methods - Encoding
-            /// <summary>
-            /// Encodes the DataSet Network message in a binary stream.
-            /// </summary>
-            /// <param name="binaryEncoder"></param>
-            private void EncodeDataSetNetworkMessageType(BinaryEncoder binaryEncoder)
-            {
-            if (binaryEncoder == null)
+        #endregion
+
+        #region Private Methods - Encoding
+        /// <summary>
+        /// Encodes the DataSet Network message in a binary stream.
+        /// </summary>
+        /// <param name="binaryEncoder"></param>
+        private void EncodeDataSetNetworkMessageType(BinaryEncoder binaryEncoder)
+        {
+        if (binaryEncoder == null)
             {
                 throw new ArgumentException(nameof(binaryEncoder));
             }
@@ -823,7 +824,7 @@ namespace Opc.Ua.PubSub.Encoding
 
             // temporary write StatusCode.Good 
             StatusCode statusCode = binaryDecoder.ReadStatusCode("StatusCode");
-            Utils.Trace("DecodeMetaDataMessage returned: ", statusCode);
+            Utils.Trace("DecodeMetaDataMessage returned: " + statusCode.ToString());
         }
 
         /// <summary>
