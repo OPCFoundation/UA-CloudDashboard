@@ -32,6 +32,7 @@ using System;
 using System.Collections.Generic;
 using System.Xml;
 using System.Linq;
+using System.Diagnostics;
 
 namespace Opc.Ua.PubSub.Encoding
 {
@@ -564,12 +565,58 @@ namespace Opc.Ua.PubSub.Encoding
                 for (int i = 0; i < dataValues.Count; i++)
                 {                
                     Field dataField = new Field();
+                    dataField.Value = dataValues[i];
+
                     if (dataSetMetaData?.Fields.Count > 0)
                     {
                         dataField.FieldMetaData = dataSetMetaData?.Fields[i];
-                    }
-                    dataField.Value = dataValues[i];
 
+                        // check for complex types
+                        if ((dataValues[i].Value is ExtensionObject) && (dataSetMetaData != null) && (dataSetMetaData.StructureDataTypes.Count > 0))
+                        {
+                            foreach (var dataType in dataSetMetaData.StructureDataTypes)
+                            {
+                                if (dataType.DataTypeId == dataField.FieldMetaData.DataType)
+                                {
+                                    Variant[] complexFields = new Variant[dataType.StructureDefinition.Fields.Count];
+                                    for (int j = 0; j < dataType.StructureDefinition.Fields.Count; j++)
+                                    {
+                                        try
+                                        {
+                                            string[] keyValue = new string[2];
+                                            keyValue[0] = dataType.StructureDefinition.Fields[j].Name;
+                                            byte[] valueArray = (byte[])((ExtensionObject)dataValues[i].Value).Body;
+                                            int valueArrayIndex = 0;
+                                            switch ((UInt32)dataType.StructureDefinition.Fields[j].DataType.Identifier)
+                                            {
+                                                case (UInt32)BuiltInType.Boolean: keyValue[1] = BitConverter.ToBoolean(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 1; break;
+                                                case (UInt32)BuiltInType.Byte: keyValue[1] = valueArray[valueArrayIndex].ToString(); valueArrayIndex += 1; break;
+                                                case (UInt32)BuiltInType.Float: keyValue[1] = BitConverter.ToSingle(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 4; break;
+                                                case (UInt32)BuiltInType.Double: keyValue[1] = BitConverter.ToDouble(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 8; break;
+                                                case (UInt32)BuiltInType.Int16: keyValue[1] = BitConverter.ToInt16(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 2; break;
+                                                case (UInt32)BuiltInType.Int32: keyValue[1] = BitConverter.ToInt32(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 4; break;
+                                                case (UInt32)BuiltInType.Int64: keyValue[1] = BitConverter.ToInt64(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 8; break;
+                                                case (UInt32)BuiltInType.UInt16: keyValue[1] = BitConverter.ToUInt16(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 2; break;
+                                                case (UInt32)BuiltInType.UInt32: keyValue[1] = BitConverter.ToUInt32(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 4; break;
+                                                case (UInt32)BuiltInType.UInt64: keyValue[1] = BitConverter.ToUInt64(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 8; break;
+                                                case (UInt32)BuiltInType.String: keyValue[1] = BitConverter.ToString(valueArray, valueArrayIndex).ToString(); valueArrayIndex += keyValue[1].Length; break;
+                                                default: throw new Exception("Type " + dataType.StructureDefinition.Fields[j].DataType.Identifier.ToString() + " not supported!");
+                                            }
+
+                                            complexFields[j] = new Variant(keyValue, TypeInfo.Construct(keyValue));
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Trace.TraceError(ex.Message);
+                                        }
+                                    }
+
+                                    dataField.Value = new DataValue(complexFields);
+                                }
+                            }
+                        }
+                    }
+                    
                     if (targetVariablesData != null && targetVariablesData.TargetVariables != null
                         && i < targetVariablesData.TargetVariables.Count)
                     {
@@ -577,6 +624,7 @@ namespace Opc.Ua.PubSub.Encoding
                         dataField.TargetAttribute = targetVariablesData.TargetVariables[i].AttributeId;
                         dataField.TargetNodeId = targetVariablesData.TargetVariables[i].TargetNodeId;
                     }
+
                     dataFields.Add(dataField);
                 }
 
@@ -590,6 +638,7 @@ namespace Opc.Ua.PubSub.Encoding
                 dataSet.Fields = dataFields.ToArray();
                 dataSet.DataSetWriterId = DataSetWriterId;
                 dataSet.SequenceNumber = SequenceNumber;
+
                 return dataSet;
             }
             catch (Exception ex)
