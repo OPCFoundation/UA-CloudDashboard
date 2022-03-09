@@ -160,39 +160,42 @@ namespace OpcUaWebDashboard
                         {
                             Field field = datasetmessage.DataSet.Fields[i];
 
-                            if (field.Value.SourceTimestamp == DateTime.MinValue)
+                            if (field.Value != null)
                             {
-                                field.Value.SourceTimestamp = datasetmessage.Timestamp;
-                            }
+                                if (field.Value.SourceTimestamp == DateTime.MinValue)
+                                {
+                                    field.Value.SourceTimestamp = datasetmessage.Timestamp;
+                                }
 
-                            if (field.FieldMetaData == null)
-                            {
-                                if (field.Value.WrappedValue.Value is Variant[])
+                                if (field.FieldMetaData == null)
                                 {
-                                    foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
+                                    if (field.Value.WrappedValue.Value is Variant[])
                                     {
-                                        string[] keyValue = (string[])variant.Value;
-                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_field" + (i + 1).ToString() + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                        foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
+                                        {
+                                            string[] keyValue = (string[])variant.Value;
+                                            pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_field" + (i + 1).ToString() + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
                                     }
                                 }
                                 else
                                 {
-                                    pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
-                                }
-                            }
-                            else
-                            {
-                                if (field.Value.WrappedValue.Value is Variant[])
-                                {
-                                    foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
+                                    if (field.Value.WrappedValue.Value is Variant[])
                                     {
-                                        string[] keyValue = (string[])variant.Value;
-                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_" + field.FieldMetaData.Name + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                        foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
+                                        {
+                                            string[] keyValue = (string[])variant.Value;
+                                            pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_" + field.FieldMetaData.Name + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                        }
                                     }
-                                }
-                                else
-                                {
-                                    pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_" + field.FieldMetaData.Name, field.Value);
+                                    else
+                                    {
+                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_" + field.FieldMetaData.Name, field.Value);
+                                    }
                                 }
                             }
                         }
