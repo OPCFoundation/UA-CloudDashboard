@@ -578,6 +578,14 @@ namespace Opc.Ua.PubSub.Encoding
                             {
                                 if (dataType.DataTypeId == dataField.FieldMetaData.DataType)
                                 {
+                                    byte[] valueArray = (byte[])((ExtensionObject)dataValues[i].Value).Body;
+                                    int valueArrayIndex = 0;
+
+                                    if (BitConverter.IsLittleEndian)
+                                    {
+                                        Array.Reverse(valueArray);
+                                    }
+                                                                        
                                     Variant[] complexFields = new Variant[dataType.StructureDefinition.Fields.Count];
                                     for (int j = 0; j < dataType.StructureDefinition.Fields.Count; j++)
                                     {
@@ -585,8 +593,7 @@ namespace Opc.Ua.PubSub.Encoding
                                         {
                                             string[] keyValue = new string[2];
                                             keyValue[0] = dataType.StructureDefinition.Fields[j].Name;
-                                            byte[] valueArray = (byte[])((ExtensionObject)dataValues[i].Value).Body;
-                                            int valueArrayIndex = 0;
+                                            
                                             switch ((UInt32)dataType.StructureDefinition.Fields[j].DataType.Identifier)
                                             {
                                                 case (UInt32)BuiltInType.Boolean: keyValue[1] = BitConverter.ToBoolean(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 1; break;
