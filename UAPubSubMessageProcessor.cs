@@ -2,6 +2,7 @@
 namespace OpcUaWebDashboard
 {
     using Microsoft.AspNetCore.SignalR;
+    using Newtonsoft.Json;
     using Opc.Ua;
     using Opc.Ua.PubSub;
     using Opc.Ua.PubSub.Encoding;
@@ -25,8 +26,8 @@ namespace OpcUaWebDashboard
             _dataSetReaders = new Dictionary<string, DataSetReaderDataType>();
 
             // add default dataset readers
-            AddUadpDataSetReader("default", new DataSetMetaDataType());
-            AddJsonDataSetReader("default", new DataSetMetaDataType());
+            AddUadpDataSetReader("default_uadp", new DataSetMetaDataType());
+            AddJsonDataSetReader("default_json", new DataSetMetaDataType());
         }
 
         public void ProcessMessage(byte[] payload, DateTime receivedTime, string contentType)
@@ -37,9 +38,21 @@ namespace OpcUaWebDashboard
                 message = Encoding.UTF8.GetString(payload);
                 if (message != null)
                 {
-                    if (((contentType != null) && (contentType == "application/json")) || message.StartsWith('{'))
-                    { 
-                        DecodeMessage(payload, receivedTime, new JsonNetworkMessage());
+                    if (((contentType != null) && (contentType == "application/json")) || message.StartsWith('{') || message.StartsWith('['))
+                    {
+                        if (message.StartsWith('['))
+                        {
+                            // we received an array of messages
+                            object[] messageArray = JsonConvert.DeserializeObject<object[]>(message);
+                            foreach (object singleMessage in messageArray)
+                            {
+                                DecodeMessage(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(singleMessage)), receivedTime, new JsonNetworkMessage());
+                            }
+                        }
+                        else
+                        {
+                            DecodeMessage(payload, receivedTime, new JsonNetworkMessage());
+                        }
                     }
                     else
                     {
@@ -137,7 +150,11 @@ namespace OpcUaWebDashboard
             else
             {
                 encodedMessage.Decode(ServiceMessageContext.GlobalContext, payload, _dataSetReaders.Values.ToArray());
-                
+
+                // reset metadata fields on default dataset readers
+                _dataSetReaders["default_uadp"].DataSetMetaData.Fields.Clear();
+                _dataSetReaders["default_json"].DataSetMetaData.Fields.Clear();
+
                 string publisherID;
                 if (encodedMessage is JsonNetworkMessage)
                 {

@@ -205,7 +205,7 @@ namespace Opc.Ua.PubSub.Encoding
 
             Dictionary<string, object> payload = token as Dictionary<string, object>;
 
-            if (payload != null && dataSetReader.DataSetMetaData != null)
+            if ((payload != null) && (dataSetReader.DataSetMetaData != null) && (dataSetReader.DataSetMetaData.Fields.Count > 0))
             {
                 DecodeErrorReason = ValidateMetadataVersion(dataSetReader.DataSetMetaData.ConfigurationVersion);
 
@@ -349,21 +349,64 @@ namespace Opc.Ua.PubSub.Encoding
         private DataSet DecodePayloadContent(JsonDecoder jsonDecoder, DataSetReaderDataType dataSetReader)
         {
             DataSetMetaDataType dataSetMetaData = dataSetReader.DataSetMetaData;
+            List<Field> dataFields = new List<Field>();
 
             List<DataValue> dataValues = new List<DataValue>();
-            for (int index = 0; index < dataSetMetaData?.Fields.Count; index++)
+            if (dataSetMetaData?.Fields.Count > 0)
             {
-                FieldMetaData fieldMetaData = dataSetMetaData?.Fields[index];
-                                
-                object token;
-                if (jsonDecoder.ReadField(fieldMetaData.Name, out token))
+                for (int index = 0; index < dataSetMetaData?.Fields.Count; index++)
                 {
-                    dataValues.AddRange(DecodeField((Dictionary<string, object>)token));
+                    FieldMetaData fieldMetaData = dataSetMetaData?.Fields[index];
+
+                    object token;
+                    if (jsonDecoder.ReadField(fieldMetaData.Name, out token))
+                    {
+                        // check for array
+                        if (token is List<object>)
+                        {
+                            foreach (object subfield in (List<object>)token)
+                            {
+                                dataValues.AddRange(DecodeField((Dictionary<string, object>)subfield));
+                            }
+                        }
+                        else
+                        {
+                            dataValues.AddRange(DecodeField((Dictionary<string, object>)token));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // no metadata
+                object token;
+                if (jsonDecoder.ReadField(null, out token))
+                {
+                    Dictionary<string, object> fields = (Dictionary<string, object>)token;
+                    foreach (KeyValuePair<string, object> field in fields)
+                    {
+                        FieldMetaData metaData = new FieldMetaData();
+                        metaData.Name = field.Key;
+                        
+                        // check for array
+                        if (field.Value is List<object>)
+                        {
+                            foreach (object subfield in (List<object>)field.Value)
+                            {
+                                dataSetMetaData?.Fields.Add(metaData);
+                                dataValues.AddRange(DecodeField((Dictionary<string, object>)subfield));
+                            }
+                        }
+                        else
+                        {
+                            dataSetMetaData?.Fields.Add(metaData);
+                            dataValues.AddRange(DecodeField((Dictionary<string, object>)field.Value));
+                        }
+                    }
                 }
             }
 
-            //build the DataSet Fields collection based on the decoded values and the target 
-            List<Field> dataFields = new List<Field>();
+            // build the DataSet Fields collection based on the decoded values and the target 
             for (int i = 0; i < dataValues.Count; i++)
             {
                 Field dataField = new Field();
