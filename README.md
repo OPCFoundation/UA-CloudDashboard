@@ -1,5 +1,5 @@
 # OpcUaWebDashboard
-A cloud-based, dockerized dashboard for displaying OPC UA PubSub telemetry data, read directly from an Azure IoT Hub or an MQTT broker. It supports both JSON and binary payloads.
+A cloud-based, dockerized dashboard for displaying OPC UA PubSub telemetry data, read directly from an Azure IoT Hub or from an MQTT broker. It supports both JSON and binary payloads as well as OPC UA Complex Types decoding.
 
 ## Installation
 
@@ -26,13 +26,9 @@ The following environment variables can be optionally defined:
 
 It is published on DockerHub: https://hub.docker.com/r/barnstee/opcuawebdashboard
 
-Run it via: docker run -p 80:80 ghcr.io/barnstee/opcuawebdashboard:main
+Run it via: docker run -e <anEnvironmentVariableFromAbove> -p 80:80 ghcr.io/barnstee/opcuawebdashboard:main
 
-Then point your web browser to <http://localhost>
-
-
-
-
+Then point your web browser to <http://yourIPAddress>
 
 ## Build Status
 

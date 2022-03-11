@@ -581,11 +581,6 @@ namespace Opc.Ua.PubSub.Encoding
                                     byte[] valueArray = (byte[])((ExtensionObject)dataValues[i].Value).Body;
                                     int valueArrayIndex = 0;
 
-                                    if (BitConverter.IsLittleEndian)
-                                    {
-                                        Array.Reverse(valueArray);
-                                    }
-                                                                        
                                     Variant[] complexFields = new Variant[dataType.StructureDefinition.Fields.Count];
                                     for (int j = 0; j < dataType.StructureDefinition.Fields.Count; j++)
                                     {
