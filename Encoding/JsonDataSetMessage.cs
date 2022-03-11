@@ -148,6 +148,7 @@ namespace Opc.Ua.PubSub.Encoding
                 {
                     return;
                 }
+
                 // handle single dataset with no network message header & no dataset message header (the content of the payload)
                 DataSet = DecodePayloadContent(jsonDecoder, dataSetReader);
             }
@@ -169,7 +170,6 @@ namespace Opc.Ua.PubSub.Encoding
                             // the dataset was decoded
                             return;
                         }
-                       
                     }
                 }
             }

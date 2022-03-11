@@ -26,8 +26,8 @@ namespace OpcUaWebDashboard
             _dataSetReaders = new Dictionary<string, DataSetReaderDataType>();
 
             // add default dataset readers
-            AddUadpDataSetReader("default_uadp", new DataSetMetaDataType());
-            AddJsonDataSetReader("default_json", new DataSetMetaDataType());
+            AddUadpDataSetReader("default_uadp", 0, new DataSetMetaDataType());
+            AddJsonDataSetReader("default_json", 0, new DataSetMetaDataType());
         }
 
         public void ProcessMessage(byte[] payload, DateTime receivedTime, string contentType)
@@ -66,10 +66,12 @@ namespace OpcUaWebDashboard
             }
         }
 
-        private void AddUadpDataSetReader(string name, DataSetMetaDataType metadata)
+        private void AddUadpDataSetReader(string publisherId, ushort dataSetWriterId, DataSetMetaDataType metadata)
         {
             DataSetReaderDataType uadpDataSetReader = new DataSetReaderDataType();
-            uadpDataSetReader.Name = name;
+            uadpDataSetReader.Name = publisherId + ":" + dataSetWriterId.ToString();
+            uadpDataSetReader.DataSetWriterId = dataSetWriterId;
+            uadpDataSetReader.PublisherId = publisherId;
             uadpDataSetReader.Enabled = true;
             uadpDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.None;
             uadpDataSetReader.KeyFrameCount = 1;
@@ -87,20 +89,22 @@ namespace OpcUaWebDashboard
             subscribedDataSet2.TargetVariables = new FieldTargetDataTypeCollection();
             uadpDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet2);
 
-            if (_dataSetReaders.ContainsKey(name))
+            if (_dataSetReaders.ContainsKey(uadpDataSetReader.Name))
             {
-                _dataSetReaders[name] = uadpDataSetReader;
+                _dataSetReaders[uadpDataSetReader.Name] = uadpDataSetReader;
             }
             else
             {
-                _dataSetReaders.Add(name, uadpDataSetReader);
+                _dataSetReaders.Add(uadpDataSetReader.Name, uadpDataSetReader);
             }
         }
 
-        private void AddJsonDataSetReader(string name, DataSetMetaDataType metadata)
+        private void AddJsonDataSetReader(string publisherId, ushort dataSetWriterId, DataSetMetaDataType metadata)
         {
             DataSetReaderDataType jsonDataSetReader = new DataSetReaderDataType();
-            jsonDataSetReader.Name = name;
+            jsonDataSetReader.Name = publisherId + ":" + dataSetWriterId.ToString();
+            jsonDataSetReader.PublisherId = publisherId;
+            jsonDataSetReader.DataSetWriterId = dataSetWriterId;
             jsonDataSetReader.Enabled = true;
             jsonDataSetReader.DataSetFieldContentMask = (uint)DataSetFieldContentMask.None;
             jsonDataSetReader.KeyFrameCount = 1;
@@ -118,13 +122,13 @@ namespace OpcUaWebDashboard
             subscribedDataSet1.TargetVariables = new FieldTargetDataTypeCollection();
             jsonDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet1);
 
-            if (_dataSetReaders.ContainsKey(name))
+            if (_dataSetReaders.ContainsKey(jsonDataSetReader.Name))
             {
-                _dataSetReaders[name] = jsonDataSetReader;
+                _dataSetReaders[jsonDataSetReader.Name] = jsonDataSetReader;
             }
             else
             {
-                _dataSetReaders.Add(name, jsonDataSetReader);
+                _dataSetReaders.Add(jsonDataSetReader.Name, jsonDataSetReader);
             }
         }
 
@@ -137,14 +141,12 @@ namespace OpcUaWebDashboard
                 if (encodedMessage is JsonNetworkMessage)
                 {
                     JsonNetworkMessage jsonMessage = (JsonNetworkMessage)encodedMessage;
-                    string name = jsonMessage.PublisherId + ":" + jsonMessage.DataSetWriterId;
-                    AddJsonDataSetReader(name, encodedMessage.DataSetMetaData);
+                    AddJsonDataSetReader(jsonMessage.PublisherId, (ushort)jsonMessage.DataSetWriterId, encodedMessage.DataSetMetaData);
                 }
                 else
                 {
                     UadpNetworkMessage uadpMessage = (UadpNetworkMessage)encodedMessage;
-                    string name = uadpMessage.PublisherId + ":" + uadpMessage.DataSetWriterId;
-                    AddUadpDataSetReader(name, encodedMessage.DataSetMetaData);
+                    AddUadpDataSetReader(uadpMessage.PublisherId.ToString(), (ushort)uadpMessage.DataSetWriterId, encodedMessage.DataSetMetaData);
                 }
             }
             else
@@ -152,8 +154,8 @@ namespace OpcUaWebDashboard
                 encodedMessage.Decode(ServiceMessageContext.GlobalContext, payload, _dataSetReaders.Values.ToArray());
 
                 // reset metadata fields on default dataset readers
-                _dataSetReaders["default_uadp"].DataSetMetaData.Fields.Clear();
-                _dataSetReaders["default_json"].DataSetMetaData.Fields.Clear();
+                _dataSetReaders["default_uadp:0"].DataSetMetaData.Fields.Clear();
+                _dataSetReaders["default_json:0"].DataSetMetaData.Fields.Clear();
 
                 string publisherID;
                 if (encodedMessage is JsonNetworkMessage)
@@ -191,12 +193,12 @@ namespace OpcUaWebDashboard
                                         foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
                                         {
                                             string[] keyValue = (string[])variant.Value;
-                                            pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_field" + (i + 1).ToString() + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                            pubSubMessage.Payload.Add(publisherID + "_field" + (i + 1).ToString() + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
                                         }
                                     }
                                     else
                                     {
-                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
+                                        pubSubMessage.Payload.Add(publisherID + "_field" + (i + 1).ToString(), field.Value);
                                     }
                                 }
                                 else
@@ -206,16 +208,18 @@ namespace OpcUaWebDashboard
                                         foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
                                         {
                                             string[] keyValue = (string[])variant.Value;
-                                            pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_" + field.FieldMetaData.Name + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                            pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
                                         }
                                     }
                                     else
                                     {
-                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSet.DataSetMetaData.Name + "_" + field.FieldMetaData.Name, field.Value);
+                                        pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name, field.Value);
                                     }
                                 }
+                                
                             }
                         }
+
                         publisherMessage.Messages.Add(pubSubMessage);
                     }
                 }

@@ -700,24 +700,35 @@ namespace Opc.Ua.PubSub.Encoding
                  If the value is null, the parameter shall be ignored and all received NetworkMessages pass the PublisherId filter. */
                 foreach (DataSetReaderDataType dataSetReader in dataSetReaders)
                 {
-                    //check Enabled & publisher id
-                    if (dataSetReader.PublisherId.Value == null
-                        || (PublisherId != null && PublisherId.Equals(dataSetReader.PublisherId.Value)))
+                    if (!(dataSetReader.MessageSettings.Body is UadpDataSetReaderMessageDataType))
+                    {
+                        continue;
+                    }
+
+                    // check publisher id
+                    if ((PublisherId != null) & (PublisherId.ToString() == dataSetReader.PublisherId.Value.ToString()))
                     {
                         dataSetReadersFiltered.Add(dataSetReader);
                     }
                 }
-                if (dataSetReadersFiltered.Count == 0)
-                {
-                    return;
-                }
-                dataSetReaders = dataSetReadersFiltered;
 
-                //continue filtering
+                // always add the default dataset reader to the end of the filtered list
+                foreach (DataSetReaderDataType dataSetReader in dataSetReaders)
+                {
+                    if (dataSetReader.Name == "default_uadp:0")
+                    {
+                        dataSetReadersFiltered.Add(dataSetReader);
+                        break;
+                    }
+                }
+
+                // continue filtering
+                dataSetReaders = dataSetReadersFiltered;
                 dataSetReadersFiltered = new List<DataSetReaderDataType>();
 
-                // 2. decode WriterGroupId
+                // decode WriterGroupId
                 DecodeGroupMessageHeader(binaryDecoder);
+
                 /* 6.2.8.2 WriterGroupId
                 The parameter WriterGroupId with DataType UInt16 defines the identifier of the corresponding WriterGroup.
                 The default value 0 is defined as null value, and means this parameter shall be ignored.*/
@@ -729,11 +740,11 @@ namespace Opc.Ua.PubSub.Encoding
                         dataSetReadersFiltered.Add(dataSetReader);
                     }
                 }
+
                 if (dataSetReadersFiltered.Count == 0)
                 {
                     return;
                 }
-                dataSetReaders = dataSetReadersFiltered;
 
                 // 3. decode payload header
                 DecodePayloadHeader(binaryDecoder);
@@ -771,7 +782,7 @@ namespace Opc.Ua.PubSub.Encoding
 
                         if (dataSetReader.DataSetWriterId == 0 || uadpDataSetMessage.DataSetWriterId == dataSetReader.DataSetWriterId)
                         {
-                            //atempt to decode dataset message using the reader
+                            // attempt to decode dataset message using the reader
                             uadpDataSetMessage.DecodePossibleDataSetReader(binaryDecoder, dataSetReader);
                             if (uadpDataSetMessage.DataSet != null)
                             {

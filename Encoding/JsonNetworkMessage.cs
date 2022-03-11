@@ -509,23 +509,27 @@ namespace Opc.Ua.PubSub.Encoding
                 // If the value is null, the parameter shall be ignored and all received NetworkMessages pass the PublisherId filter. */
                 foreach (DataSetReaderDataType dataSetReader in dataSetReaders)
                 {
-                    if (dataSetReader.PublisherId == Variant.Null)
+                    if (!(dataSetReader.MessageSettings.Body is JsonDataSetReaderMessageDataType))
                     {
-                        dataSetReadersFiltered.Add(dataSetReader);
+                        continue;
                     }
-                    // publisher id
-                    else if ((NetworkMessageContentMask & JsonNetworkMessageContentMask.PublisherId) != 0
-                        && PublisherId != null
-                        && PublisherId.Equals(dataSetReader.PublisherId.Value.ToString()))
+
+                    // check publisher id
+                    if ((PublisherId != null) && (PublisherId == dataSetReader.PublisherId.Value.ToString()))
                     {
                         dataSetReadersFiltered.Add(dataSetReader);
                     }
                 }
-                if (dataSetReadersFiltered.Count == 0)
+
+                // always add the default dataset reader to the end of the filtered list
+                foreach (DataSetReaderDataType dataSetReader in dataSetReaders)
                 {
-                    return;
+                    if (dataSetReader.Name == "default_json:0")
+                    {
+                        dataSetReadersFiltered.Add(dataSetReader);
+                        break;
+                    }
                 }
-                dataSetReaders = dataSetReadersFiltered;
 
                 object messagesToken = null;
                 List<object> messagesList = null;
@@ -554,10 +558,11 @@ namespace Opc.Ua.PubSub.Encoding
                     // this is a SingleDataSetMessage encoded as the content json 
                     messagesList = new List<object>();
                 }
+
                 if (messagesList != null)
                 {
-                    // atempt decoding for each data set reader
-                    foreach (DataSetReaderDataType dataSetReader in dataSetReaders)
+                    // atempt decoding for each filtered data set reader
+                    foreach (DataSetReaderDataType dataSetReader in dataSetReadersFiltered)
                     {
                         JsonDataSetReaderMessageDataType jsonMessageSettings = ExtensionObject.ToEncodeable(dataSetReader.MessageSettings)
                            as JsonDataSetReaderMessageDataType;
@@ -566,8 +571,8 @@ namespace Opc.Ua.PubSub.Encoding
                             // The reader MessageSettings is not set up correctly 
                             continue;
                         }
-                        JsonNetworkMessageContentMask networkMessageContentMask =
-                            (JsonNetworkMessageContentMask)jsonMessageSettings.NetworkMessageContentMask;
+
+                        JsonNetworkMessageContentMask networkMessageContentMask = (JsonNetworkMessageContentMask)jsonMessageSettings.NetworkMessageContentMask;
                         if ((networkMessageContentMask & NetworkMessageContentMask) != NetworkMessageContentMask)
                         {
                             // The reader MessageSettings.NetworkMessageContentMask is not set up correctly 
@@ -578,6 +583,7 @@ namespace Opc.Ua.PubSub.Encoding
                         JsonDataSetMessage jsonDataSetMessage = new JsonDataSetMessage();
                         jsonDataSetMessage.DataSetMessageContentMask = (JsonDataSetMessageContentMask)jsonMessageSettings.DataSetMessageContentMask;
                         jsonDataSetMessage.SetFieldContentMask((DataSetFieldContentMask)dataSetReader.DataSetFieldContentMask);
+
                         // set the flag that indicates if dataset message shall have a header
                         jsonDataSetMessage.HasDataSetMessageHeader = (networkMessageContentMask & JsonNetworkMessageContentMask.DataSetMessageHeader) != 0;
 
