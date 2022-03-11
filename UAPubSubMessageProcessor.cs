@@ -236,7 +236,7 @@ namespace OpcUaWebDashboard
                         {
                             if (message.Payload[nodeId].SourceTimestamp == DateTime.MinValue)
                             {
-                                // use the IoT Hub enqueued time if the OPC UA timestamp is not present
+                                // use the enqueued time if the OPC UA timestamp is not present
                                 message.Payload[nodeId].SourceTimestamp = enqueueTime;
                             }
 
