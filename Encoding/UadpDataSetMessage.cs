@@ -30,9 +30,9 @@
 using Opc.Ua.PubSub.PublishedData;
 using System;
 using System.Collections.Generic;
-using System.Xml;
-using System.Linq;
 using System.Diagnostics;
+using System.Linq;
+using System.Xml;
 
 namespace Opc.Ua.PubSub.Encoding
 {
@@ -601,7 +601,7 @@ namespace Opc.Ua.PubSub.Encoding
                                                 case (UInt32)BuiltInType.UInt16: keyValue[1] = BitConverter.ToUInt16(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 2; break;
                                                 case (UInt32)BuiltInType.UInt32: keyValue[1] = BitConverter.ToUInt32(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 4; break;
                                                 case (UInt32)BuiltInType.UInt64: keyValue[1] = BitConverter.ToUInt64(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 8; break;
-                                                case (UInt32)BuiltInType.String: keyValue[1] = BitConverter.ToString(valueArray, valueArrayIndex).ToString(); valueArrayIndex += keyValue[1].Length; break;
+                                                case (UInt32)BuiltInType.String: int length = valueArray[valueArrayIndex]; valueArrayIndex++; keyValue[1] = System.Text.Encoding.UTF8.GetString(valueArray, valueArrayIndex, length); valueArrayIndex += keyValue[1].Length; break;
                                                 default: throw new Exception("Type " + dataType.StructureDefinition.Fields[j].DataType.Identifier.ToString() + " not supported!");
                                             }
 

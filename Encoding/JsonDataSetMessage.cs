@@ -290,6 +290,11 @@ namespace Opc.Ua.PubSub.Encoding
                     {
                         newValue = new DataValue(new Variant(FlattenComplexField((Dictionary<string, object>)field["Value"])));
                     }
+                    else if (field["Value"] is List<object>)
+                    {
+                        // array
+                        newValue = new DataValue(new Variant(((List<object>)field["Value"]).ToArray()));
+                    }
                     else
                     {
                         newValue = new DataValue(new Variant(field["Value"]));

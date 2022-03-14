@@ -205,10 +205,23 @@ namespace OpcUaWebDashboard
                                 {
                                     if (field.Value.WrappedValue.Value is Variant[])
                                     {
+                                        int j = 0;
                                         foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
                                         {
-                                            string[] keyValue = (string[])variant.Value;
-                                            pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                            if (variant.Value is string[])
+                                            {
+                                                string[] keyValue = (string[])variant.Value;
+                                                if (keyValue != null)
+                                                {
+                                                    pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                                }
+                                            }
+                                            else
+                                            {
+                                                pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name + "_" + j.ToString(), new DataValue(new Variant(variant.Value.ToString())));
+                                            }
+
+                                            j++;
                                         }
                                     }
                                     else
