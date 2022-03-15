@@ -254,9 +254,26 @@ namespace Opc.Ua.PubSub.Encoding
 
             foreach (KeyValuePair<string, object> complexSubType in complexType)
             {
+                // check for nested complex type
                 if (complexSubType.Value is Dictionary<string, object>)
                 {
                     result.AddRange(FlattenComplexField((Dictionary<string, object>)complexSubType.Value));
+                }
+                else if (complexSubType.Value is List<object>)
+                {
+                    // array
+                    foreach (object element in (List<object>)complexSubType.Value)
+                    {
+                        // check for complex type
+                        if (element is Dictionary<string, object>)
+                        {
+                            result.AddRange(FlattenComplexField((Dictionary<string, object>)element));
+                        }
+                        else
+                        {
+                            result.Add(new Variant(element));
+                        }
+                    }
                 }
                 else
                 {
@@ -293,7 +310,20 @@ namespace Opc.Ua.PubSub.Encoding
                     else if (field["Value"] is List<object>)
                     {
                         // array
-                        newValue = new DataValue(new Variant(((List<object>)field["Value"]).ToArray()));
+                        List<Variant> list = new List<Variant>();
+                        foreach (object element in (List<object>)field["Value"])
+                        {
+                            // check for complex type
+                            if (element is Dictionary<string, object>)
+                            {
+                                list.AddRange(FlattenComplexField((Dictionary<string, object>)element));
+                            }
+                            else
+                            {
+                                list.Add(new Variant(element));
+                            }
+                        }
+                        newValue = new DataValue(new Variant(list.ToArray()));
                     }
                     else
                     {
@@ -318,6 +348,24 @@ namespace Opc.Ua.PubSub.Encoding
                     if (field["Body"] is Dictionary<string, object>)
                     {
                         newValue = new DataValue(new Variant(FlattenComplexField((Dictionary<string, object>)field["Body"])));
+                    }
+                    else if (field["Body"] is List<object>)
+                    {
+                        // array
+                        List<Variant> list = new List<Variant>();
+                        foreach (object element in (List<object>)field["Body"])
+                        {
+                            // check for complex type
+                            if (element is Dictionary<string, object>)
+                            {
+                                list.AddRange(FlattenComplexField((Dictionary<string, object>)element));
+                            }
+                            else
+                            {
+                                list.Add(new Variant(element));
+                            }
+                        }
+                        newValue = new DataValue(new Variant(list.ToArray()));
                     }
                     else
                     {
