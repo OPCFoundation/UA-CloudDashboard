@@ -601,7 +601,7 @@ namespace Opc.Ua.PubSub.Encoding
                                                 case (UInt32)BuiltInType.UInt16: keyValue[1] = BitConverter.ToUInt16(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 2; break;
                                                 case (UInt32)BuiltInType.UInt32: keyValue[1] = BitConverter.ToUInt32(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 4; break;
                                                 case (UInt32)BuiltInType.UInt64: keyValue[1] = BitConverter.ToUInt64(valueArray, valueArrayIndex).ToString(); valueArrayIndex += 8; break;
-                                                case (UInt32)BuiltInType.String: int length = valueArray[valueArrayIndex]; valueArrayIndex++; keyValue[1] = System.Text.Encoding.UTF8.GetString(valueArray, valueArrayIndex, length); valueArrayIndex += keyValue[1].Length; break;
+                                                case (UInt32)BuiltInType.String: int length = BitConverter.ToInt32(valueArray, valueArrayIndex); valueArrayIndex += 4; keyValue[1] = System.Text.Encoding.UTF8.GetString(valueArray, valueArrayIndex, length); valueArrayIndex += length; break;
                                                 default: throw new Exception("Type " + dataType.StructureDefinition.Fields[j].DataType.Identifier.ToString() + " not supported!");
                                             }
 
