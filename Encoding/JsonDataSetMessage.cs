@@ -422,9 +422,13 @@ namespace Opc.Ua.PubSub.Encoding
                                 dataValues.AddRange(DecodeField((Dictionary<string, object>)subfield));
                             }
                         }
-                        else
+                        else if (token is Dictionary<string, object>)
                         {
                             dataValues.AddRange(DecodeField((Dictionary<string, object>)token));
+                        }
+                        else
+                        {
+                            dataValues.Add(new DataValue(new Variant(token)));
                         }
                     }
                 }
@@ -450,10 +454,15 @@ namespace Opc.Ua.PubSub.Encoding
                                 dataValues.AddRange(DecodeField((Dictionary<string, object>)subfield));
                             }
                         }
-                        else
+                        else if (field.Value is Dictionary<string, object>)
                         {
                             dataSetMetaData?.Fields.Add(metaData);
                             dataValues.AddRange(DecodeField((Dictionary<string, object>)field.Value));
+                        }
+                        else
+                        {
+                            dataSetMetaData?.Fields.Add(metaData);
+                            dataValues.Add(new DataValue(new Variant(field.Value)));
                         }
                     }
                 }

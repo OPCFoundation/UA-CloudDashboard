@@ -157,14 +157,14 @@ namespace OpcUaWebDashboard
                 _dataSetReaders["default_uadp:0"].DataSetMetaData.Fields.Clear();
                 _dataSetReaders["default_json:0"].DataSetMetaData.Fields.Clear();
 
-                string publisherID;
+                string publisherID = string.Empty;
                 if (encodedMessage is JsonNetworkMessage)
                 {
-                    publisherID = ((JsonNetworkMessage)encodedMessage).PublisherId.ToString();
+                    publisherID = ((JsonNetworkMessage)encodedMessage).PublisherId?.ToString();
                 }
                 else
                 {
-                    publisherID = ((UadpNetworkMessage)encodedMessage).PublisherId.ToString();
+                    publisherID = ((UadpNetworkMessage)encodedMessage).PublisherId?.ToString();
                 }
 
                 OpcUaPubSubMessageModel publisherMessage = new OpcUaPubSubMessageModel();
