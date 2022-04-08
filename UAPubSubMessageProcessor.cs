@@ -193,12 +193,12 @@ namespace OpcUaWebDashboard
                                         foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
                                         {
                                             string[] keyValue = (string[])variant.Value;
-                                            pubSubMessage.Payload.Add(publisherID + "_field" + (i + 1).ToString() + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                            pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_field" + (i + 1).ToString() + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
                                         }
                                     }
                                     else
                                     {
-                                        pubSubMessage.Payload.Add(publisherID + "_field" + (i + 1).ToString(), field.Value);
+                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_field" + (i + 1).ToString(), field.Value);
                                     }
                                 }
                                 else
@@ -213,12 +213,12 @@ namespace OpcUaWebDashboard
                                                 string[] keyValue = (string[])variant.Value;
                                                 if (keyValue != null)
                                                 {
-                                                    pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                                    pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
                                                 }
                                             }
                                             else
                                             {
-                                                pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name + "_" + j.ToString(), new DataValue(new Variant(variant.Value.ToString())));
+                                                pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_" + j.ToString(), new DataValue(new Variant(variant.Value.ToString())));
                                             }
 
                                             j++;
@@ -226,7 +226,7 @@ namespace OpcUaWebDashboard
                                     }
                                     else
                                     {
-                                        pubSubMessage.Payload.Add(publisherID + "_" + field.FieldMetaData.Name, field.Value);
+                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name, field.Value);
                                     }
                                 }
                                 
