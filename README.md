@@ -1,5 +1,5 @@
 # UA Cloud Dashboard
-A cloud-based, dockerized dashboard for displaying OPC UA PubSub telemetry data, read directly from an Azure IoT Hub or from an MQTT broker. It supports both JSON and binary payloads as well as OPC UA Complex Types decoding.
+A cross-platform OPC UA cloud dashboard reference implementation leveraging MQTT. It runs in a Docker container and displays OPC UA PubSub telemetry data, read directly from an MQTT broker or Azure EventHub/IoT Hub. It supports both JSON and binary payloads as well as OPC UA Complex Types decoding.
 
 ## Installation
 
