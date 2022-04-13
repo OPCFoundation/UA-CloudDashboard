@@ -1,13 +1,13 @@
 ﻿
-using Microsoft.Azure.EventHubs;
-using Microsoft.Azure.EventHubs.Processor;
-using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace OpcUaWebDashboard
+namespace Opc.Ua.Cloud.Dashboard
 {
+    using Microsoft.Azure.EventHubs;
+    using Microsoft.Azure.EventHubs.Processor;
+    using System;
+    using System.Diagnostics;
+    using System.Threading;
+    using System.Threading.Tasks;
+
     public class IoTHubConfig
     {
         public static Task Connect()

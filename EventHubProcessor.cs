@@ -1,12 +1,13 @@
-﻿using Microsoft.Azure.EventHubs;
-using Microsoft.Azure.EventHubs.Processor;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading.Tasks;
-
-namespace OpcUaWebDashboard
+﻿
+namespace Opc.Ua.Cloud.Dashboard
 {
+    using Microsoft.Azure.EventHubs;
+    using Microsoft.Azure.EventHubs.Processor;
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Threading.Tasks;
+
     public class EventHubProcessor : IEventProcessor
     {
         private readonly IUAPubSubMessageProcessor _uaMessageProcessor;

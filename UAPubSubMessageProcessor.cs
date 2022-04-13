@@ -1,5 +1,5 @@
 ﻿
-namespace OpcUaWebDashboard
+namespace Opc.Ua.Cloud.Dashboard
 {
     using Microsoft.AspNetCore.SignalR;
     using Newtonsoft.Json;
@@ -7,7 +7,7 @@ namespace OpcUaWebDashboard
     using Opc.Ua.PubSub;
     using Opc.Ua.PubSub.Encoding;
     using Opc.Ua.PubSub.PublishedData;
-    using OpcUaWebDashboard.Models;
+    using Opc.Ua.Cloud.Dashboard.Models;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;

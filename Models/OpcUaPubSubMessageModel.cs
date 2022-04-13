@@ -1,9 +1,8 @@
 ﻿
-using Opc.Ua;
-using System.Collections.Generic;
-
-namespace OpcUaWebDashboard.Models
+namespace Opc.Ua.Cloud.Dashboard.Models
 {
+    using System.Collections.Generic;
+
     public class OpcUaPubSubMessageModel
     {
         public List<Message> Messages { get; set; }

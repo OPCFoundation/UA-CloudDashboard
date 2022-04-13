@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace OpcUaWebDashboard.Controllers
+﻿
+namespace Opc.Ua.Cloud.Dashboard.Controllers
 {
+    using Microsoft.AspNetCore.Mvc;
+
     public class DashboardController : Controller
     {
         public ActionResult Privacy()

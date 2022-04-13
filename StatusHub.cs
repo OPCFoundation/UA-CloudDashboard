@@ -1,12 +1,12 @@
 ﻿
-using Microsoft.AspNetCore.SignalR;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OpcUaWebDashboard
+namespace Opc.Ua.Cloud.Dashboard
 {
+    using Microsoft.AspNetCore.SignalR;
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Threading.Tasks;
+
     public class StatusHub : Hub
     {
         // this is our SignalR Status Hub

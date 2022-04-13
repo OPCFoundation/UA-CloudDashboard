@@ -7,16 +7,16 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /src
-COPY ["OpcUaWebDashboard.csproj", "."]
-RUN dotnet restore "./OpcUaWebDashboard.csproj"
+COPY ["UACloudDashboard.csproj", "."]
+RUN dotnet restore "./UACloudDashboard.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "OpcUaWebDashboard.csproj" -c Release -o /app/build
+RUN dotnet build "UACloudDashboard.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "OpcUaWebDashboard.csproj" -c Release -o /app/publish
+RUN dotnet publish "UACloudDashboard.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "OpcUaWebDashboard.dll"]
+ENTRYPOINT ["dotnet", "UACloudDashboard.dll"]

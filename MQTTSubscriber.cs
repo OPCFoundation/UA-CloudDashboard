@@ -1,5 +1,5 @@
 ﻿
-namespace OpcUaWebDashboard
+namespace Opc.Ua.Cloud.Dashboard
 {
     using MQTTnet;
     using MQTTnet.Adapter;

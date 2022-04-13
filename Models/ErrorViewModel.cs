@@ -1,5 +1,5 @@
 
-namespace OpcUaWebDashboard.Models
+namespace Opc.Ua.Cloud.Dashboard.Models
 {
     public class ErrorViewModel
     {
