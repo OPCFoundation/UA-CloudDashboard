@@ -32,5 +32,5 @@ Then point your web browser to <http://yourIPAddress>
 
 ## Build Status
 
-[![Docker](https://github.com/barnstee/OpcUaWebDashboard/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/barnstee/OpcUaWebDashboard/actions/workflows/docker-publish.yml)
+[![Docker](https://github.com/barnstee/UA-CloudDashboard/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/barnstee/UA-CloudDashboard/actions/workflows/docker-publish.yml)
 
