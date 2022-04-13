@@ -26,7 +26,7 @@ The following environment variables can be optionally defined:
 
 Run it on a Docker-enabled computer via:
 
-`docker run -e anEnvironmentVariableFromAbove="yourSetting" -p 80:80 ghcr.io/barnstee/opcuawebdashboard:main`
+`docker run -e anEnvironmentVariableFromAbove="yourSetting" -p 80:80 ghcr.io/barnstee/ua-clouddashboard:main`
 
 Then point your web browser to <http://yourIPAddress>
 
