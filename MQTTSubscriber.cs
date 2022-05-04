@@ -35,6 +35,7 @@ namespace Opc.Ua.Cloud.Dashboard
                     _client.DisconnectAsync().GetAwaiter().GetResult();
                     _client.Dispose();
                     _client = null;
+                    Task.Delay(TimeSpan.FromSeconds(3)).GetAwaiter().GetResult();
                 }
 
                 // create MQTT client

@@ -4,10 +4,10 @@ namespace Opc.Ua.Cloud.Dashboard
     using Microsoft.AspNetCore.SignalR;
     using Newtonsoft.Json;
     using Opc.Ua;
+    using Opc.Ua.Cloud.Dashboard.Models;
     using Opc.Ua.PubSub;
     using Opc.Ua.PubSub.Encoding;
     using Opc.Ua.PubSub.PublishedData;
-    using Opc.Ua.Cloud.Dashboard.Models;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
@@ -28,6 +28,14 @@ namespace Opc.Ua.Cloud.Dashboard
             // add default dataset readers
             AddUadpDataSetReader("default_uadp", 0, new DataSetMetaDataType());
             AddJsonDataSetReader("default_json", 0, new DataSetMetaDataType());
+        }
+
+        public void Clear()
+        {
+            lock (_hubClient.TableEntries)
+            {
+                _hubClient.TableEntries.Clear();
+            }
         }
 
         public void ProcessMessage(byte[] payload, DateTime receivedTime, string contentType)

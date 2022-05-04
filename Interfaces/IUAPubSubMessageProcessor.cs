@@ -5,6 +5,8 @@ namespace Opc.Ua.Cloud.Dashboard
 
     public interface IUAPubSubMessageProcessor
     {
+        void Clear();
+
         void ProcessMessage(byte[] payload, DateTime receivedTime, string contentType);
     }
 }
