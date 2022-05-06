@@ -48,6 +48,12 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                         Environment.SetEnvironmentVariable("MQTT_TOPIC", "devices/mettler/#");
                         break;
                     }
+
+                    if (key.Contains("Matrikon"))
+                    {
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "Mtkon/#");
+                        break;
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_MQTT")))

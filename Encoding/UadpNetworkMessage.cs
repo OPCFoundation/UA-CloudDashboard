@@ -706,7 +706,7 @@ namespace Opc.Ua.PubSub.Encoding
                     }
 
                     // check publisher id
-                    if ((PublisherId != null) & (PublisherId.ToString() == dataSetReader.PublisherId.Value.ToString()))
+                    if ((PublisherId != null) && (PublisherId.ToString() == dataSetReader.PublisherId.Value.ToString()))
                     {
                         dataSetReadersFiltered.Add(dataSetReader);
                     }

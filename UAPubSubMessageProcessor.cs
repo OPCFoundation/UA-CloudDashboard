@@ -46,9 +46,9 @@ namespace Opc.Ua.Cloud.Dashboard
                 message = Encoding.UTF8.GetString(payload);
                 if (message != null)
                 {
-                    if (((contentType != null) && (contentType == "application/json")) || message.StartsWith('{') || message.StartsWith('['))
+                    if (((contentType != null) && (contentType == "application/json")) || message.TrimStart().StartsWith('{') || message.TrimStart().StartsWith('['))
                     {
-                        if (message.StartsWith('['))
+                        if (message.TrimStart().StartsWith('['))
                         {
                             // we received an array of messages
                             object[] messageArray = JsonConvert.DeserializeObject<object[]>(message);
@@ -221,7 +221,7 @@ namespace Opc.Ua.Cloud.Dashboard
                                                 string[] keyValue = (string[])variant.Value;
                                                 if (keyValue != null)
                                                 {
-                                                    pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                                    pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_" + keyValue[0] + "_" + j.ToString(), new DataValue(new Variant(keyValue[1])));
                                                 }
                                             }
                                             else
