@@ -54,6 +54,18 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                         Environment.SetEnvironmentVariable("MQTT_TOPIC", "Mtkon/#");
                         break;
                     }
+
+                    if (key.Contains("Prosys OPC"))
+                    {
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "prosysopc/#");
+                        break;
+                    }
+
+                    if (key.Contains("Unified Automation"))
+                    {
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "unifiedautomation/#");
+                        break;
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_MQTT")))
