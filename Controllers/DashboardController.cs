@@ -63,7 +63,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("Unified Automation"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "unifiedautomation/#");
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "unifiedautomation/permanent/temperatures/#");
                         break;
                     }
                 }
