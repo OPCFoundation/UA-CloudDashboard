@@ -149,12 +149,13 @@ namespace Opc.Ua.Cloud.Dashboard
                 if (encodedMessage is JsonNetworkMessage)
                 {
                     JsonNetworkMessage jsonMessage = (JsonNetworkMessage)encodedMessage;
-                    AddJsonDataSetReader(jsonMessage.PublisherId, (ushort)jsonMessage.DataSetWriterId, encodedMessage.DataSetMetaData);
+                    
+                    AddJsonDataSetReader(jsonMessage.PublisherId, jsonMessage.DataSetWriterId, encodedMessage.DataSetMetaData);
                 }
                 else
                 {
                     UadpNetworkMessage uadpMessage = (UadpNetworkMessage)encodedMessage;
-                    AddUadpDataSetReader(uadpMessage.PublisherId.ToString(), (ushort)uadpMessage.DataSetWriterId, encodedMessage.DataSetMetaData);
+                    AddUadpDataSetReader(uadpMessage.PublisherId.ToString(), uadpMessage.DataSetWriterId, encodedMessage.DataSetMetaData);
                 }
             }
             else

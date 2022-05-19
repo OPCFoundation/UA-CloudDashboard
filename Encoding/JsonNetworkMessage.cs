@@ -331,15 +331,7 @@ namespace Opc.Ua.PubSub.Encoding
             else if (m_jsonNetworkMessageType == JSONNetworkMessageType.DataSetMetaData)
             {
                 jsonEncoder.WriteString(nameof(PublisherId), PublisherId);
-
-                if (DataSetWriterId != null)
-                {
-                    jsonEncoder.WriteUInt16(nameof(DataSetWriterId), DataSetWriterId.Value);
-                }
-                else
-                {
-                    Utils.Trace("The JSON MetaDataMessage cannot be encoded: The DataSetWriterId property is missing for MessageId:{0}.", MessageId);
-                }
+                jsonEncoder.WriteUInt16(nameof(DataSetWriterId), DataSetWriterId);
             }
         }
         

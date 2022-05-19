@@ -66,6 +66,30 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                         Environment.SetEnvironmentVariable("MQTT_TOPIC", "unifiedautomation/permanent/temperatures/#");
                         break;
                     }
+
+                    if (key.Contains("Pilz"))
+                    {
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "devices/pilz/#");
+                        break;
+                    }
+
+                    if (key.Contains("Pilz"))
+                    {
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "Beckhoff/plc/#");
+                        break;
+                    }
+
+                    if (key.Contains("Phoenix Contact"))
+                    {
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "phoenix/#");
+                        break;
+                    }
+
+                    if (key.Contains("VDW"))
+                    {
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "vdw/#");
+                        break;
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_MQTT")))

@@ -487,16 +487,8 @@ namespace Opc.Ua.PubSub.Encoding
         /// <param name="binaryEncoder"></param>
         private void EncodeDataSetMetaData(BinaryEncoder binaryEncoder)
         {
-            if (DataSetWriterId != null)
-            {
-                binaryEncoder.WriteUInt16("DataSetWriterId", DataSetWriterId.Value);
-            }
-            else
-            {
-                Utils.Trace("The UADP DiscoveryResponse DataSetMetaData message cannot be encoded: The DataSetWriterId property is missing. Value 0 will be used.");
-                binaryEncoder.WriteUInt16("DataSetWriterId", 0);
-            }
-
+            binaryEncoder.WriteUInt16("DataSetWriterId", DataSetWriterId);
+            
             if (m_metadata == null)
             {
                 Utils.Trace("The UADP DiscoveryResponse DataSetMetaData message cannot be encoded: The MetaData property is missing. Value null will be used.");

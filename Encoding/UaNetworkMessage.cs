@@ -94,7 +94,7 @@ namespace Opc.Ua.PubSub
         /// <summary>
         /// Get and Set DataSetWriterId if a single value exists for the message.
         /// </summary>
-        public UInt16? DataSetWriterId
+        public UInt16 DataSetWriterId
         {
             get
             {
@@ -105,15 +105,15 @@ namespace Opc.Ua.PubSub
                         return m_uaDataSetMessages[0].DataSetWriterId;
                     }
 
-                    return null;
+                    return m_dataSetWriterId;
                 }
 
-                return ((m_dataSetWriterId != 0) ? m_dataSetWriterId : (UInt16?)null);
+                return 0;
             }
 
             set
             {
-                m_dataSetWriterId = (value != null) ? value.Value : (ushort)0;
+                m_dataSetWriterId = value;
             }
         }
 
