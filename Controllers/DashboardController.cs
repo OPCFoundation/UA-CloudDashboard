@@ -90,6 +90,12 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                         Environment.SetEnvironmentVariable("MQTT_TOPIC", "vdw/#");
                         break;
                     }
+
+                    if (key.Contains("KUKA"))
+                    {
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "kuka/#");
+                        break;
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_MQTT")))
