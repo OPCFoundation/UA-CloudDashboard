@@ -51,7 +51,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("Matrikon"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "Mtkon/#");
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "Matrikon/#");
                         break;
                     }
 
