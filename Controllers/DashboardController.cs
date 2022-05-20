@@ -87,7 +87,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("VDW"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "vdw/#");
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "vdw/json/data/MoreRealisticMachineTool/#");
                         break;
                     }
 
