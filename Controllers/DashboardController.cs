@@ -93,7 +93,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("KUKA"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "kuka/#");
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "KUKA/#");
                         break;
                     }
                 }

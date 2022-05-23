@@ -235,7 +235,7 @@ namespace Opc.Ua.Cloud.Dashboard
                                     }
                                     else
                                     {
-                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name, field.Value);
+                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
                                     }
                                 }
                                 

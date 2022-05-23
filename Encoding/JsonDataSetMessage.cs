@@ -419,7 +419,14 @@ namespace Opc.Ua.PubSub.Encoding
                         {
                             foreach (object subfield in (List<object>)token)
                             {
-                                dataValues.AddRange(DecodeField((Dictionary<string, object>)subfield));
+                                if (subfield is Dictionary<string, object>)
+                                {
+                                    dataValues.AddRange(DecodeField((Dictionary<string, object>)subfield));
+                                }
+                                else
+                                {
+                                    dataValues.Add(new DataValue(new Variant(subfield)));
+                                }
                             }
                         }
                         else if (token is Dictionary<string, object>)
@@ -450,8 +457,17 @@ namespace Opc.Ua.PubSub.Encoding
                         {
                             foreach (object subfield in (List<object>)field.Value)
                             {
-                                dataSetMetaData?.Fields.Add(metaData);
-                                dataValues.AddRange(DecodeField((Dictionary<string, object>)subfield));
+                                if (subfield is Dictionary<string, object>)
+                                {
+                                    dataSetMetaData?.Fields.Add(metaData);
+                                    dataValues.AddRange(DecodeField((Dictionary<string, object>)subfield));
+                                }
+                                else
+                                {
+                                    dataSetMetaData?.Fields.Add(metaData);
+                                    dataValues.Add(new DataValue(new Variant(subfield)));
+                                }
+                                
                             }
                         }
                         else if (field.Value is Dictionary<string, object>)
