@@ -81,7 +81,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("Phoenix Contact"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "phoenix/#");
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "PhoenixContact/#");
                         break;
                     }
 
