@@ -73,9 +73,9 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                         break;
                     }
 
-                    if (key.Contains("Pilz"))
+                    if (key.Contains("Beckhoff"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "Beckhoff/plc/#");
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "Test/#");
                         break;
                     }
 
