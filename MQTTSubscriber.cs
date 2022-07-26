@@ -4,9 +4,6 @@ namespace Opc.Ua.Cloud.Dashboard
     using MQTTnet;
     using MQTTnet.Adapter;
     using MQTTnet.Client;
-    using MQTTnet.Client.Connecting;
-    using MQTTnet.Client.Options;
-    using MQTTnet.Client.Subscribing;
     using MQTTnet.Packets;
     using MQTTnet.Protocol;
     using System;
@@ -40,20 +37,20 @@ namespace Opc.Ua.Cloud.Dashboard
 
                 // create MQTT client
                 _client = new MqttFactory().CreateMqttClient();
-                _client.UseApplicationMessageReceivedHandler(msg => HandleMessageAsync(msg));
+                _client.ApplicationMessageReceivedAsync += msg => HandleMessageAsync(msg);
                 var clientOptions = new MqttClientOptionsBuilder()
                     .WithTcpServer(opt => opt.NoDelay = true)
                     .WithClientId(Environment.GetEnvironmentVariable("MQTT_CLIENT_NAME"))
                     .WithTcpServer(Environment.GetEnvironmentVariable("MQTT_BROKER_NAME"), int.Parse(Environment.GetEnvironmentVariable("MQTT_BROKER_PORT")))
                     .WithTls(new MqttClientOptionsBuilderTlsParameters { UseTls = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MQTT_USE_TLS")) })
                     .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V311)
-                    .WithCommunicationTimeout(TimeSpan.FromSeconds(10))
+                    .WithTimeout(TimeSpan.FromSeconds(10))
                     .WithKeepAlivePeriod(TimeSpan.FromSeconds(100))
                     .WithCleanSession(true) // clear existing subscriptions 
                     .WithCredentials(Environment.GetEnvironmentVariable("MQTT_USERNAME"), Environment.GetEnvironmentVariable("MQTT_PASSWORD"));
 
                 // setup disconnection handling
-                _client.UseDisconnectedHandler(disconnectArgs =>
+                _client.DisconnectedAsync += disconnectArgs =>
                 {
                     Trace.TraceInformation($"Disconnected from MQTT broker: {disconnectArgs.Reason}");
 
@@ -63,7 +60,9 @@ namespace Opc.Ua.Cloud.Dashboard
                     {
                         Connect();
                     }
-                });
+
+                    return Task.CompletedTask;
+                };
 
                 try
                 {
@@ -82,7 +81,7 @@ namespace Opc.Ua.Cloud.Dashboard
                         }).GetAwaiter().GetResult();
 
                     // make sure subscriptions were successful
-                    if (subscribeResult.Items.Count != 1 || subscribeResult.Items[0].ResultCode != MqttClientSubscribeResultCode.GrantedQoS0)
+                    if (subscribeResult.Items.Count != 1 || subscribeResult.Items.ElementAt(0).ResultCode != MqttClientSubscribeResultCode.GrantedQoS0)
                     {
                         throw new ApplicationException("Failed to subscribe");
                     }
