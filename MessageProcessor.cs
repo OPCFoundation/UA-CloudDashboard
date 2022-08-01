@@ -61,38 +61,58 @@ namespace OpcUaWebDashboard
             displayNameMap.Add(samsonURI + "#i=6097", "SAMSON Trovis ActControlDeviation (i=6097)");
 
             // unbatch the received data
-            foreach (Message message in publisherMessage.Messages)
+            if (publisherMessage.Messages != null)
             {
-                foreach (string nodeId in message.Payload.Keys)
+                foreach (Message message in publisherMessage.Messages)
                 {
-                    // make sure we have it in our list of nodeIDs, which form the basis of our individual time series datasets
-                    if (!NodeIDs.Contains(displayNameMap[nodeId]))
+                    foreach (string nodeId in message.Payload.Keys)
                     {
-                        NodeIDs.Add(displayNameMap[nodeId]);
-                        DashboardController.AddDatasetToChart(displayNameMap[nodeId]);
-                    }
+                        string displayName = nodeId;
+                        DateTime timestamp = DateTime.UtcNow;
 
-                    // try to add to our list of received values
-                    try
-                    {
-                        SignalRModel newItem = new SignalRModel {
-                            NodeID = displayNameMap[nodeId],
-                            TimeStamp = message.Payload[nodeId].SourceTimestamp,
-                            Value = float.Parse(message.Payload[nodeId].Value.ToString())
-                        };
-                        receivedDataItems.Add(newItem);
-                    }
-                    catch (Exception)
-                    {
-                        // ignore this item
-                    }
+                        // check our map first
+                        if (displayNameMap.ContainsKey(nodeId))
+                        {
+                            displayName = displayNameMap[nodeId];
+                        }
 
-                    // add item to our table entries
-                    tableEntries.Add(new Tuple<string, string, string>(
-                        displayNameMap[nodeId],
-                        message.Payload[nodeId].Value.ToString(),
-                        message.Payload[nodeId].SourceTimestamp.ToString()
-                    ));
+                        // check timestamp
+                        if (message.Payload[nodeId].SourceTimestamp != DateTime.MinValue)
+                        {
+                            timestamp = message.Payload[nodeId].SourceTimestamp;
+                        }
+
+                        // make sure we have it in our list of nodeIDs, which form the basis of our individual time series datasets
+                        if (!NodeIDs.Contains(displayName))
+                        {
+                            NodeIDs.Add(displayName);
+                            DashboardController.AddDatasetToChart(displayName);
+                        }
+
+                        // try to add to our list of received values
+                        try
+                        {
+                            SignalRModel newItem = new SignalRModel
+                            {
+                                NodeID = displayName,
+                                TimeStamp = timestamp,
+                                Value = float.Parse(message.Payload[nodeId].Value.ToString())
+                            };
+                            
+                            receivedDataItems.Add(newItem);
+                        }
+                        catch (Exception)
+                        {
+                            // ignore this item
+                        }
+
+                        // add item to our table entries
+                        tableEntries.Add(new Tuple<string, string, string>(
+                            displayName,
+                            message.Payload[nodeId].Value.ToString(),
+                            timestamp.ToString()
+                        ));
+                    }
                 }
             }
 
