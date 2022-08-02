@@ -12,10 +12,14 @@
       "commandName": "IISExpress",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "IotHubEventHubName": "achema",
+        "IotHubConsumerGroup": "test",
+        "EventHubEndpointIotHubOwnerConnectionString": "",
+        "StorageAccountConnectionString": ""
       }
     },
-    "UANodesetWebViewer": {
+    "UACloudDashboard": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
