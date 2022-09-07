@@ -96,6 +96,12 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                         Environment.SetEnvironmentVariable("MQTT_TOPIC", "KUKA/#");
                         break;
                     }
+
+                    if (key.Contains("Wago"))
+                    {
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "oi4/OTConnector/wago.com/#");
+                        break;
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_MQTT")))

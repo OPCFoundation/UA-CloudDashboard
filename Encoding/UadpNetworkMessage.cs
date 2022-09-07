@@ -1252,18 +1252,25 @@ namespace Opc.Ua.PubSub.Encoding
         /// <param name="decoder"></param>
         private void DecodeSecurityHeader(BinaryDecoder decoder)
         {
-            if ((ExtendedFlags1 & ExtendedFlags1EncodingMask.Security) != 0)
+            try
             {
-                SecurityFlags = (SecurityFlagsEncodingMask)decoder.ReadByte("SecurityFlags");
-
-                SecurityTokenId = decoder.ReadUInt32("SecurityTokenId");
-                NonceLength = decoder.ReadByte("NonceLength");
-                MessageNonce = decoder.ReadByteArray("MessageNonce").ToArray();
-
-                if ((SecurityFlags & SecurityFlagsEncodingMask.SecurityFooter) != 0)
+                if ((ExtendedFlags1 & ExtendedFlags1EncodingMask.Security) != 0)
                 {
-                    SecurityFooterSize = decoder.ReadUInt16("SecurityFooterSize");
+                    SecurityFlags = (SecurityFlagsEncodingMask)decoder.ReadByte("SecurityFlags");
+
+                    SecurityTokenId = decoder.ReadUInt32("SecurityTokenId");
+                    NonceLength = decoder.ReadByte("NonceLength");
+                    MessageNonce = decoder.ReadByteArray("MessageNonce")?.ToArray();
+
+                    if ((SecurityFlags & SecurityFlagsEncodingMask.SecurityFooter) != 0)
+                    {
+                        SecurityFooterSize = decoder.ReadUInt16("SecurityFooterSize");
+                    }
                 }
+            }
+            catch (Exception)
+            {
+                // ignore security header
             }
         }
 
