@@ -87,7 +87,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("VDW"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "vdw/json/data/MoreRealisticMachineTool/#");
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "vdw/json/data/#");
                         break;
                     }
 
@@ -100,6 +100,12 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                     if (key.Contains("Wago"))
                     {
                         Environment.SetEnvironmentVariable("MQTT_TOPIC", "oi4/OTConnector/wago.com/#");
+                        break;
+                    }
+
+                    if (key.Contains("OPC Foundation"))
+                    {
+                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "starterkit/json/data/#");
                         break;
                     }
                 }
