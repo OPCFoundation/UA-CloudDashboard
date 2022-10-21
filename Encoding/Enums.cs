@@ -324,75 +324,6 @@ namespace Opc.Ua.PubSub
     }
 
     /// <summary>
-    /// Enumeration for possible transport protocols used with PubSub
-    /// </summary>
-    public enum TransportProtocol
-    {
-        /// <summary>
-        /// Not available.
-        /// </summary>
-        NotAvailable,
-        /// <summary>
-        /// UDP protocol.
-        /// </summary>
-        UDP,
-        /// <summary>
-        /// MQTT protocol.
-        /// </summary>
-        MQTT,
-        /// <summary>
-        /// AMQP protocol.
-        /// </summary>
-        AMQP
-    }
-
-    /// <summary>
-    /// The identifiers of the MqttClientConfigurationParameters
-    /// </summary>
-    internal enum EnumMqttClientConfigurationParameters
-    {
-        UserName,
-        Password,
-        AzureClientId,
-        CleanSession,
-        ProtocolVersion,
-
-        TlsCertificateCaCertificatePath,
-        TlsCertificateClientCertificatePath,
-        TlsCertificateClientCertificatePassword,
-        TlsProtocolVersion,
-        TlsAllowUntrustedCertificates,
-        TlsIgnoreCertificateChainErrors,
-        TlsIgnoreRevocationListErrors,
-
-        TrustedIssuerCertificatesStoreType,
-        TrustedIssuerCertificatesStorePath,
-        TrustedPeerCertificatesStoreType,
-        TrustedPeerCertificatesStorePath,
-        RejectedCertificateStoreStoreType,
-        RejectedCertificateStoreStorePath
-    }
-
-    /// <summary>
-    /// Where is a method call used in
-    /// </summary>
-    internal enum UsedInContext
-    {
-        /// <summary>
-        /// Publisher context call
-        /// </summary>
-        Publisher,
-        /// <summary>
-        /// Subscriber context call
-        /// </summary>
-        Subscriber,
-        /// <summary>
-        /// Discovery context call
-        /// </summary>
-        Discovery,
-    };
-
-    /// <summary>
     /// The reason an error has been detected while decoding a DataSet
     /// </summary>
     public enum DataSetDecodeErrorReason
@@ -405,21 +336,6 @@ namespace Opc.Ua.PubSub
         /// The MetadataMajorVersion is different
         /// </summary>
         MetadataMajorVersion,
-    }
-
-    /// <summary>
-    /// Enum that specifies the message mapping for a UaPubSub connection
-    /// </summary>
-    public enum MessageMapping
-    {
-        /// <summary>
-        /// UADP message type
-        /// </summary>
-        Uadp,
-        /// <summary>
-        /// JSON message type
-        /// </summary>
-        Json
     }
 
     /// <summary>
@@ -441,24 +357,4 @@ namespace Opc.Ua.PubSub
         /// </summary>
         DataSetMetaData = 2,
     }
-
-    /// <summary>
-    /// Enumeration that represents the possible Properties of an object from the <see cref="PubSubConfigurationDataType"/> that can be changed during runtime.
-    /// </summary>
-    public enum ConfigurationProperty
-    {
-        /// <summary>
-        /// None
-        /// </summary>
-        None,
-        /// <summary>
-        /// DataSetMetaData
-        /// </summary>
-        DataSetMetaData,
-        /// <summary>
-        /// ConfigurationVersion
-        /// </summary>
-        ConfigurationVersion,
-    }
-
 }

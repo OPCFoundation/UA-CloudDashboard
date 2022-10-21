@@ -33,79 +33,79 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                 {
                     if (key.Contains("Siemens"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "siemens/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "siemens/#");
                         break;
                     }
 
                     if (key.Contains("Trumpf"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "devices/trumpf/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "devices/trumpf/#");
                         break;
                     }
 
                     if (key.Contains("Mettler Toledo"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "devices/mettler/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "devices/mettler/#");
                         break;
                     }
 
                     if (key.Contains("Matrikon"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "Matrikon/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "Matrikon/#");
                         break;
                     }
 
                     if (key.Contains("Prosys OPC"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "prosysopc/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "prosysopc/#");
                         break;
                     }
 
                     if (key.Contains("Unified Automation"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "unifiedautomation/permanent/temperatures/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "unifiedautomation/permanent/temperatures/#");
                         break;
                     }
 
                     if (key.Contains("Pilz"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "devices/pilz/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "devices/pilz/#");
                         break;
                     }
 
                     if (key.Contains("Beckhoff"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "Test/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "Test/#");
                         break;
                     }
 
                     if (key.Contains("Phoenix Contact"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "PhoenixContact/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "PhoenixContact/#");
                         break;
                     }
 
                     if (key.Contains("VDW"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "vdw/json/data/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "vdw/json/data/#");
                         break;
                     }
 
                     if (key.Contains("KUKA"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "KUKA/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "KUKA/#");
                         break;
                     }
 
                     if (key.Contains("Wago"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "oi4/OTConnector/wago.com/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "oi4/OTConnector/wago.com/#");
                         break;
                     }
 
                     if (key.Contains("OPC Foundation"))
                     {
-                        Environment.SetEnvironmentVariable("MQTT_TOPIC", "starterkit/json/data/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "starterkit/json/data/#");
                         break;
                     }
                 }
@@ -116,7 +116,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                 }
                 else
                 {
-                    IoTHubConfig.Connect();
+                    KafkaSubscriber.Connect();
                 }
 
                 _uaMessageProcessor.Clear();

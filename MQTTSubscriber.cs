@@ -40,14 +40,14 @@ namespace Opc.Ua.Cloud.Dashboard
                 _client.ApplicationMessageReceivedAsync += msg => HandleMessageAsync(msg);
                 var clientOptions = new MqttClientOptionsBuilder()
                     .WithTcpServer(opt => opt.NoDelay = true)
-                    .WithClientId(Environment.GetEnvironmentVariable("MQTT_CLIENT_NAME"))
-                    .WithTcpServer(Environment.GetEnvironmentVariable("MQTT_BROKER_NAME"), int.Parse(Environment.GetEnvironmentVariable("MQTT_BROKER_PORT")))
-                    .WithTls(new MqttClientOptionsBuilderTlsParameters { UseTls = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MQTT_USE_TLS")) })
+                    .WithClientId(Environment.GetEnvironmentVariable("CLIENT_NAME"))
+                    .WithTcpServer(Environment.GetEnvironmentVariable("BROKER_NAME"), int.Parse(Environment.GetEnvironmentVariable("BROKER_PORT")))
+                    .WithTls(new MqttClientOptionsBuilderTlsParameters { UseTls = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_TLS")) })
                     .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V311)
                     .WithTimeout(TimeSpan.FromSeconds(10))
                     .WithKeepAlivePeriod(TimeSpan.FromSeconds(100))
-                    .WithCleanSession(true) // clear existing subscriptions 
-                    .WithCredentials(Environment.GetEnvironmentVariable("MQTT_USERNAME"), Environment.GetEnvironmentVariable("MQTT_PASSWORD"));
+                    .WithCleanSession(true) // clear existing subscriptions
+                    .WithCredentials(Environment.GetEnvironmentVariable("USERNAME"), Environment.GetEnvironmentVariable("PASSWORD"));
 
                 // setup disconnection handling
                 _client.DisconnectedAsync += disconnectArgs =>
@@ -76,7 +76,7 @@ namespace Opc.Ua.Cloud.Dashboard
                     var subscribeResult = _client.SubscribeAsync(
                         new MqttTopicFilter
                         {
-                            Topic = Environment.GetEnvironmentVariable("MQTT_TOPIC"),
+                            Topic = Environment.GetEnvironmentVariable("TOPIC"),
                             QualityOfServiceLevel = MqttQualityOfServiceLevel.AtMostOnce
                         }).GetAwaiter().GetResult();
 

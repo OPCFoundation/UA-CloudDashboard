@@ -46,6 +46,9 @@ namespace Opc.Ua.Cloud.Dashboard
                 message = Encoding.UTF8.GetString(payload);
                 if (message != null)
                 {
+#if DEBUG
+                    Trace.TraceInformation($"Received Message {message}");
+#endif
                     if (((contentType != null) && (contentType == "application/json")) || message.TrimStart().StartsWith('{') || message.TrimStart().StartsWith('['))
                     {
                         if (message.TrimStart().StartsWith('['))
@@ -149,7 +152,7 @@ namespace Opc.Ua.Cloud.Dashboard
                 if (encodedMessage is JsonNetworkMessage)
                 {
                     JsonNetworkMessage jsonMessage = (JsonNetworkMessage)encodedMessage;
-                    
+
                     AddJsonDataSetReader(jsonMessage.PublisherId, jsonMessage.DataSetWriterId, encodedMessage.DataSetMetaData);
                 }
                 else
@@ -238,7 +241,7 @@ namespace Opc.Ua.Cloud.Dashboard
                                         pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
                                     }
                                 }
-                                
+
                             }
                         }
 

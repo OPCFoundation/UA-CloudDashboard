@@ -65,7 +65,7 @@ namespace Opc.Ua.Cloud.Dashboard
             }
             else
             {
-                IoTHubConfig.Connect();
+                KafkaSubscriber.Connect();
             }
         }
     }
