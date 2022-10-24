@@ -58,15 +58,6 @@ namespace Opc.Ua.Cloud.Dashboard
 
                 endpoints.MapHub<StatusHub>("/statushub");
             });
-
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_MQTT")))
-            {
-                MQTTSubscriber.Connect();
-            }
-            else
-            {
-                KafkaSubscriber.Connect();
-            }
         }
     }
 }
