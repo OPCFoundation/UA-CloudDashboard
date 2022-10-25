@@ -94,11 +94,12 @@ namespace Opc.Ua.Cloud.Dashboard
                 NetworkMessageContentMask = (uint)(UadpNetworkMessageContentMask.NetworkMessageNumber | UadpNetworkMessageContentMask.PublisherId | UadpNetworkMessageContentMask.DataSetClassId),
                 DataSetMessageContentMask = (uint)UadpDataSetMessageContentMask.None,
             };
+
             uadpDataSetReader.MessageSettings = new ExtensionObject(uadpDataSetReaderMessageSettings);
 
-            TargetVariablesDataType subscribedDataSet2 = new TargetVariablesDataType();
-            subscribedDataSet2.TargetVariables = new FieldTargetDataTypeCollection();
-            uadpDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet2);
+            TargetVariablesDataType subscribedDataSet = new TargetVariablesDataType();
+            subscribedDataSet.TargetVariables = new FieldTargetDataTypeCollection();
+            uadpDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet);
 
             if (_dataSetReaders.ContainsKey(uadpDataSetReader.Name))
             {
@@ -127,11 +128,12 @@ namespace Opc.Ua.Cloud.Dashboard
                 NetworkMessageContentMask = (uint)(JsonNetworkMessageContentMask.NetworkMessageHeader | JsonNetworkMessageContentMask.DataSetMessageHeader | JsonNetworkMessageContentMask.DataSetClassId | JsonNetworkMessageContentMask.PublisherId),
                 DataSetMessageContentMask = (uint)JsonDataSetMessageContentMask.None,
             };
+
             jsonDataSetReader.MessageSettings = new ExtensionObject(jsonDataSetReaderMessageSettings);
 
-            TargetVariablesDataType subscribedDataSet1 = new TargetVariablesDataType();
-            subscribedDataSet1.TargetVariables = new FieldTargetDataTypeCollection();
-            jsonDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet1);
+            TargetVariablesDataType subscribedDataSet = new TargetVariablesDataType();
+            subscribedDataSet.TargetVariables = new FieldTargetDataTypeCollection();
+            jsonDataSetReader.SubscribedDataSet = new ExtensionObject(subscribedDataSet);
 
             if (_dataSetReaders.ContainsKey(jsonDataSetReader.Name))
             {
