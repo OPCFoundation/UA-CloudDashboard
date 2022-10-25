@@ -20,9 +20,9 @@ namespace Opc.Ua.Cloud.Dashboard
         private StatusHubClient _hubClient;
         private Dictionary<string, DataSetReaderDataType> _dataSetReaders;
 
-        public UAPubSubMessageProcessor(IHubContext<StatusHub> hubClient)
+        public UAPubSubMessageProcessor(IHubContext<StatusHub> hubContext)
         {
-            _hubClient = new StatusHubClient(hubClient);
+            _hubClient = new StatusHubClient(hubContext);
             _dataSetReaders = new Dictionary<string, DataSetReaderDataType>();
 
             // add default dataset readers
