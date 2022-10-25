@@ -13,16 +13,16 @@ namespace Opc.Ua.Cloud.Dashboard
     using System.Diagnostics;
     using System.Linq;
     using System.Text;
+    using UACloudDashboard.Interfaces;
 
     public class UAPubSubMessageProcessor : IUAPubSubMessageProcessor
     {
         private StatusHubClient _hubClient;
         private Dictionary<string, DataSetReaderDataType> _dataSetReaders;
 
-        public UAPubSubMessageProcessor()
+        public UAPubSubMessageProcessor(IHubContext<StatusHub> hubClient)
         {
-            IServiceProvider serviceProvider = Program.AppHost.Services;
-            _hubClient = new StatusHubClient((IHubContext<StatusHub>)serviceProvider.GetService(typeof(IHubContext<StatusHub>)));
+            _hubClient = new StatusHubClient(hubClient);
             _dataSetReaders = new Dictionary<string, DataSetReaderDataType>();
 
             // add default dataset readers

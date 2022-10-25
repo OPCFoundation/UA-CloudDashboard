@@ -13,7 +13,7 @@ namespace Opc.Ua.Cloud.Dashboard
     }
 
     public class StatusHubClient
-    { 
+    {
         public Dictionary<string, Tuple<string, string>> TableEntries { get; set; } = new Dictionary<string, Tuple<string, string>>();
 
         public Dictionary<string, string[]> ChartEntries { get; set; } = new Dictionary<string, string[]>();
@@ -44,14 +44,15 @@ namespace Opc.Ua.Cloud.Dashboard
                     {
                         _hubContext.Clients.All.SendAsync("addDataToChart", entry.Key, entry.Value).GetAwaiter().GetResult();
                     }
+
                     ChartEntries.Clear();
 
-                    CreateTableForTelemetry();
+                    CreateAndSendTelemetryTable();
                 }
             }
         }
 
-        private void CreateTableForTelemetry()
+        private void CreateAndSendTelemetryTable()
         {
             // create HTML table
             StringBuilder sb = new StringBuilder();

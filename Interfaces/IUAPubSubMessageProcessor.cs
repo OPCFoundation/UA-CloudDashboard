@@ -1,5 +1,5 @@
 ﻿
-namespace Opc.Ua.Cloud.Dashboard
+namespace UACloudDashboard.Interfaces
 {
     using System;
 

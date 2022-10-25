@@ -6,7 +6,9 @@ namespace Opc.Ua.Cloud.Dashboard
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using System.Diagnostics;
     using System;
+    using UACloudDashboard.Interfaces;
 
     public class Startup
     {
@@ -25,6 +27,15 @@ namespace Opc.Ua.Cloud.Dashboard
             services.AddSignalR();
 
             services.AddSingleton<IUAPubSubMessageProcessor, UAPubSubMessageProcessor>();
+
+            if (!string.IsNullOrEmpty(Configuration["USE_MQTT"]))
+            {
+                services.AddSingleton<ISubscriber, MQTTSubscriber>();
+            }
+            else
+            {
+                services.AddSingleton<ISubscriber, KafkaSubscriber>();
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

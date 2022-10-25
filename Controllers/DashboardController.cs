@@ -4,14 +4,17 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
     using Microsoft.AspNetCore.Mvc;
     using System;
     using System.Diagnostics;
+    using UACloudDashboard.Interfaces;
 
     public class DashboardController : Controller
     {
-        private readonly IUAPubSubMessageProcessor _uaMessageProcessor;
+        private readonly ISubscriber _subscriber;
+        private readonly IUAPubSubMessageProcessor _processor;
 
-        public DashboardController(IUAPubSubMessageProcessor processor)
+        public DashboardController(ISubscriber subscriber, IUAPubSubMessageProcessor processor)
         {
-            _uaMessageProcessor = processor;
+            _subscriber = subscriber;
+            _processor = processor;
         }
 
         public ActionResult Privacy()
@@ -110,16 +113,9 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                     }
                 }
 
-                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_MQTT")))
-                {
-                    MQTTSubscriber.Connect();
-                }
-                else
-                {
-                    KafkaSubscriber.Connect();
-                }
+                _subscriber.Connect();
 
-                _uaMessageProcessor.Clear();
+                _processor.Clear();
 
                 return View("Graph");
             }
