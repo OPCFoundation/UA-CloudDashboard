@@ -238,7 +238,15 @@ namespace Opc.Ua.Cloud.Dashboard
                                     }
                                     else
                                     {
-                                        flattenedPublishedNodes.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
+                                        string key = publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_field" + (i + 1).ToString();
+                                        if (flattenedPublishedNodes.ContainsKey(key))
+                                        {
+                                            flattenedPublishedNodes[key] = field.Value;
+                                        }
+                                        else
+                                        {
+                                            flattenedPublishedNodes.Add(key, field.Value);
+                                        }
                                     }
                                 }
 
@@ -294,7 +302,7 @@ namespace Opc.Ua.Cloud.Dashboard
                                 }
                                 else
                                 {
-                                    _hubClient.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
+                                    _hubClient.TableEntries.Add(displayName, new Tuple<string, string>(value, timeStamp));
                                 }
 
                                 float floatValue;
