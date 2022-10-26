@@ -181,12 +181,10 @@ namespace Opc.Ua.Cloud.Dashboard
                     publisherID = ((UadpNetworkMessage)encodedMessage).PublisherId?.ToString();
                 }
 
-                OpcUaPubSubMessageModel publisherMessage = new OpcUaPubSubMessageModel();
-                publisherMessage.Messages = new List<Message>();
+                // now flatten any complex types
+                Dictionary<string, DataValue> flattenedPublishedNodes = new();
                 foreach (UaDataSetMessage datasetmessage in encodedMessage.DataSetMessages)
                 {
-                    Message pubSubMessage = new Message();
-                    pubSubMessage.Payload = new Dictionary<string, DataValue>();
                     if (datasetmessage.DataSet != null)
                     {
                         for (int i = 0; i < datasetmessage.DataSet.Fields.Count(); i++)
@@ -207,12 +205,12 @@ namespace Opc.Ua.Cloud.Dashboard
                                         foreach (Variant variant in (Variant[])field.Value.WrappedValue.Value)
                                         {
                                             string[] keyValue = (string[])variant.Value;
-                                            pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_field" + (i + 1).ToString() + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
+                                            flattenedPublishedNodes.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_field" + (i + 1).ToString() + "_" + keyValue[0], new DataValue(new Variant(keyValue[1])));
                                         }
                                     }
                                     else
                                     {
-                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_field" + (i + 1).ToString(), field.Value);
+                                        flattenedPublishedNodes.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_field" + (i + 1).ToString(), field.Value);
                                     }
                                 }
                                 else
@@ -227,12 +225,12 @@ namespace Opc.Ua.Cloud.Dashboard
                                                 string[] keyValue = (string[])variant.Value;
                                                 if (keyValue != null)
                                                 {
-                                                    pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_" + keyValue[0] + "_" + j.ToString(), new DataValue(new Variant(keyValue[1])));
+                                                    flattenedPublishedNodes.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_" + keyValue[0] + "_" + j.ToString(), new DataValue(new Variant(keyValue[1])));
                                                 }
                                             }
                                             else
                                             {
-                                                pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_" + j.ToString(), new DataValue(new Variant(variant.Value.ToString())));
+                                                flattenedPublishedNodes.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_" + j.ToString(), new DataValue(new Variant(variant.Value.ToString())));
                                             }
 
                                             j++;
@@ -240,110 +238,101 @@ namespace Opc.Ua.Cloud.Dashboard
                                     }
                                     else
                                     {
-                                        pubSubMessage.Payload.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
+                                        flattenedPublishedNodes.Add(publisherID + "_" + datasetmessage.DataSetWriterId.ToString() + "_" + field.FieldMetaData.Name + "_field" + (i + 1).ToString(), field.Value);
                                     }
                                 }
 
                             }
                         }
-
-                        publisherMessage.Messages.Add(pubSubMessage);
                     }
                 }
 
-                ProcessPublisherMessage(publisherMessage, receivedTime);
+                SendPublishedNodestoSignalRHub(flattenedPublishedNodes, receivedTime);
             }
         }
 
-        private void ProcessPublisherMessage(OpcUaPubSubMessageModel publisherMessage, DateTime enqueueTime)
+        private void SendPublishedNodestoSignalRHub(Dictionary<string, DataValue> publishedNodes, DateTime enqueueTime)
         {
             Dictionary<string, string> displayNameMap = new Dictionary<string, string>(); // TODO: Add display name substitudes here!
 
-            // unbatch the received data
-            if (publisherMessage.Messages != null)
+            foreach (string nodeId in publishedNodes.Keys)
             {
-                foreach (Message message in publisherMessage.Messages)
+                // substitude the node Id with a custom display name, if available
+                string displayName = nodeId;
+                try
                 {
-                    foreach (string nodeId in message.Payload.Keys)
+                    if (displayNameMap.Count > 0)
                     {
-                        // substitude the node Id with a custom display name, if available
-                        string displayName = nodeId;
-                        try
-                        {
-                            if (displayNameMap.Count > 0)
-                            {
-                                displayName = displayNameMap[nodeId];
-                            }
-                        }
-                        catch
-                        {
-                            // keep the original node ID as the display name
-                        }
+                        displayName = displayNameMap[nodeId];
+                    }
+                }
+                catch
+                {
+                    // keep the original node ID as the display name
+                }
 
-                        if (message.Payload[nodeId] != null)
-                        {
-                            if (message.Payload[nodeId].SourceTimestamp == DateTime.MinValue)
-                            {
-                                // use the enqueued time if the OPC UA timestamp is not present
-                                message.Payload[nodeId].SourceTimestamp = enqueueTime;
-                            }
+                if (publishedNodes[nodeId] != null)
+                {
+                    if (publishedNodes[nodeId].SourceTimestamp == DateTime.MinValue)
+                    {
+                        // use the enqueued time if the OPC UA timestamp is not present
+                        publishedNodes[nodeId].SourceTimestamp = enqueueTime;
+                    }
 
-                            try
+                    try
+                    {
+                        string timeStamp = publishedNodes[nodeId].SourceTimestamp.ToString();
+                        if (publishedNodes[nodeId].Value != null)
+                        {
+                            string value = publishedNodes[nodeId].Value.ToString();
+
+                            lock (_hubClient.TableEntries)
                             {
-                                string timeStamp = message.Payload[nodeId].SourceTimestamp.ToString();
-                                if (message.Payload[nodeId].Value != null)
+                                if (_hubClient.TableEntries.ContainsKey(displayName))
                                 {
-                                    string value = message.Payload[nodeId].Value.ToString();
+                                    _hubClient.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
+                                }
+                                else
+                                {
+                                    _hubClient.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
+                                }
 
-                                    lock (_hubClient.TableEntries)
+                                float floatValue;
+                                if (float.TryParse(value, out floatValue))
+                                {
+                                    // create a keys array as index from our display names
+                                    List<string> keys = new List<string>();
+                                    foreach (string displayNameAsKey in _hubClient.TableEntries.Keys)
                                     {
-                                        if (_hubClient.TableEntries.ContainsKey(displayName))
-                                        {
-                                            _hubClient.TableEntries[displayName] = new Tuple<string, string>(value, timeStamp);
-                                        }
-                                        else
-                                        {
-                                            _hubClient.TableEntries.TryAdd(displayName, new Tuple<string, string>(value, timeStamp));
-                                        }
-
-                                        float floatValue;
-                                        if (float.TryParse(value, out floatValue))
-                                        {
-                                            // create a keys array as index from our display names
-                                            List<string> keys = new List<string>();
-                                            foreach (string displayNameAsKey in _hubClient.TableEntries.Keys)
-                                            {
-                                                keys.Add(displayNameAsKey);
-                                            }
-
-                                            // check if we have to create an initially blank entry first
-                                            if (!_hubClient.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hubClient.ChartEntries[timeStamp].Length))
-                                            {
-                                                string[] blankValues = new string[_hubClient.TableEntries.Count];
-                                                for (int i = 0; i < blankValues.Length; i++)
-                                                {
-                                                    blankValues[i] = "NaN";
-                                                }
-
-                                                if (_hubClient.ChartEntries.ContainsKey(timeStamp))
-                                                {
-                                                    _hubClient.ChartEntries.Remove(timeStamp);
-                                                }
-
-                                                _hubClient.ChartEntries.Add(timeStamp, blankValues);
-                                            }
-
-                                            _hubClient.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
-                                        }
+                                        keys.Add(displayNameAsKey);
                                     }
+
+                                    // check if we have to create an initially blank entry first
+                                    if (!_hubClient.ChartEntries.ContainsKey(timeStamp) || (keys.Count != _hubClient.ChartEntries[timeStamp].Length))
+                                    {
+                                        string[] blankValues = new string[_hubClient.TableEntries.Count];
+                                        for (int i = 0; i < blankValues.Length; i++)
+                                        {
+                                            blankValues[i] = "NaN";
+                                        }
+
+                                        if (_hubClient.ChartEntries.ContainsKey(timeStamp))
+                                        {
+                                            _hubClient.ChartEntries.Remove(timeStamp);
+                                        }
+
+                                        _hubClient.ChartEntries.Add(timeStamp, blankValues);
+                                    }
+
+                                    _hubClient.ChartEntries[timeStamp][keys.IndexOf(displayName)] = floatValue.ToString();
                                 }
                             }
-                            catch (Exception ex)
-                            {
-                                // ignore this item
-                                Trace.TraceInformation($"Cannot add item {nodeId}: {ex.Message}");
-                            }
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        // ignore this item
+                        Trace.TraceInformation($"Cannot add item {nodeId}: {ex.Message}");
                     }
                 }
             }
