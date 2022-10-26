@@ -4,6 +4,7 @@ namespace Opc.Ua.Cloud.Dashboard
     using Microsoft.AspNetCore.SignalR;
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Text;
     using System.Threading.Tasks;
 
@@ -66,7 +67,7 @@ namespace Opc.Ua.Cloud.Dashboard
             sb.Append("</tr>");
 
             // rows
-            foreach (KeyValuePair<string, Tuple<string, string>> item in TableEntries)
+            foreach (KeyValuePair<string, Tuple<string, string>> item in TableEntries.ToImmutableSortedDictionary())
             {
                 sb.Append("<tr>");
                 sb.Append("<td style='width:400px'>" + item.Key + "</td>");
