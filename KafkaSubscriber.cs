@@ -44,8 +44,8 @@ namespace Opc.Ua.Cloud.Dashboard
                     AutoOffsetReset = AutoOffsetReset.Earliest,
                     SecurityProtocol = SecurityProtocol.SaslSsl,
                     SaslMechanism = SaslMechanism.Plain,
-                    SaslUsername = Environment.GetEnvironmentVariable("USERNAME"),
-                    SaslPassword = Environment.GetEnvironmentVariable("PASSWORD")
+                    SaslUsername = Environment.GetEnvironmentVariable("BROKER_USERNAME"),
+                    SaslPassword = Environment.GetEnvironmentVariable("BROKER_PASSWORD")
                 };
 
                 _consumer = new ConsumerBuilder<Ignore, byte[]>(conf).Build();
