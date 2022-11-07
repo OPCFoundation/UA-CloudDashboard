@@ -3,6 +3,8 @@ namespace UACloudDashboard.Interfaces
 {
     public interface ISubscriber
     {
-        public void Connect();
+        public void Run();
+
+        public void Stop();
     }
 }

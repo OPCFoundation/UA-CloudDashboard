@@ -3,7 +3,7 @@ namespace UACloudDashboard.Interfaces
 {
     using System;
 
-    public interface IUAPubSubMessageProcessor
+    public interface IMessageProcessor
     {
         void Clear();
 

@@ -26,7 +26,7 @@ namespace Opc.Ua.Cloud.Dashboard
 
             services.AddSignalR();
 
-            services.AddSingleton<IUAPubSubMessageProcessor, UAPubSubMessageProcessor>();
+            services.AddSingleton<IMessageProcessor, UAPubSubMessageProcessor>();
 
             if (!string.IsNullOrEmpty(Configuration["USE_MQTT"]))
             {

@@ -1,6 +1,7 @@
 ﻿
 namespace Opc.Ua.Cloud.Dashboard
 {
+    using Microsoft.Extensions.Logging;
     using MQTTnet;
     using MQTTnet.Adapter;
     using MQTTnet.Client;
@@ -8,7 +9,6 @@ namespace Opc.Ua.Cloud.Dashboard
     using MQTTnet.Protocol;
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Globalization;
     using System.Linq;
     using System.Text;
@@ -19,14 +19,25 @@ namespace Opc.Ua.Cloud.Dashboard
     public class MQTTSubscriber : ISubscriber
     {
         private IMqttClient _client = null;
-        private readonly IUAPubSubMessageProcessor _uaMessageProcessor;
+        private readonly ILogger<MQTTSubscriber> _logger;
+        private IMessageProcessor _uaMessageProcessor;
 
-        public MQTTSubscriber(IUAPubSubMessageProcessor uaMessageProcessor)
+        public MQTTSubscriber(IMessageProcessor uaMessageProcessor, ILogger<MQTTSubscriber> logger)
         {
+            _logger = logger;
             _uaMessageProcessor = uaMessageProcessor;
         }
 
-        public void Connect()
+        public void Run()
+        {
+            // try to connect every 5 seconds
+            while (!Connect())
+            {
+                Thread.Sleep(5000);
+            }
+        }
+
+        public void Stop()
         {
             try
             {
@@ -36,7 +47,26 @@ namespace Opc.Ua.Cloud.Dashboard
                     _client.DisconnectAsync().GetAwaiter().GetResult();
                     _client.Dispose();
                     _client = null;
-                    Task.Delay(TimeSpan.FromSeconds(3)).GetAwaiter().GetResult();
+                }
+            }
+            catch (Exception)
+            {
+                // do nothing
+            }
+        }
+
+        private bool Connect()
+        {
+            try
+            {
+                // disconnect if still connected
+                if ((_client != null) && _client.IsConnected)
+                {
+                    _client.DisconnectAsync().GetAwaiter().GetResult();
+                    _client.Dispose();
+                    _client = null;
+
+                    Thread.Sleep(3000);
                 }
 
                 // create MQTT client
@@ -56,10 +86,11 @@ namespace Opc.Ua.Cloud.Dashboard
                 // setup disconnection handling
                 _client.DisconnectedAsync += disconnectArgs =>
                 {
-                    Trace.TraceInformation($"Disconnected from MQTT broker: {disconnectArgs.Reason}");
+                    _logger.LogInformation($"Disconnected from MQTT broker: {disconnectArgs.Reason}");
 
                     // wait a 5 seconds, then simply reconnect again, if needed
-                    Task.Delay(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+                    Thread.Sleep(5000);
+
                     if ((_client == null) || !_client.IsConnected)
                     {
                         Connect();
@@ -90,23 +121,29 @@ namespace Opc.Ua.Cloud.Dashboard
                         throw new ApplicationException("Failed to subscribe");
                     }
 
-                    Trace.TraceInformation("Connected to MQTT broker.");
+                    _logger.LogInformation("Connected to MQTT broker.");
+
+                    return true;
                 }
                 catch (MqttConnectingFailedException ex)
                 {
-                    Trace.TraceError($"Failed to connect with reason {ex.ResultCode} and message: {ex.Message}");
+                    _logger.LogError($"Failed to connect with reason {ex.ResultCode} and message: {ex.Message}");
                     if (ex.Result?.UserProperties != null)
                     {
                         foreach (var prop in ex.Result.UserProperties)
                         {
-                            Trace.TraceError($"{prop.Name}: {prop.Value}");
+                            _logger.LogError($"{prop.Name}: {prop.Value}");
                         }
                     }
+
+                    return false;
                 }
             }
             catch (Exception ex)
             {
-                Trace.TraceError("Failed to connect to MQTT broker: " + ex.Message);
+                _logger.LogError("Failed to connect to MQTT broker: " + ex.Message);
+
+                return false;
             }
         }
 
@@ -134,7 +171,7 @@ namespace Opc.Ua.Cloud.Dashboard
         // handles all incoming messages
         private async Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs args)
         {
-            Trace.TraceInformation($"Received message from topic: {args.ApplicationMessage.Topic}");
+            _logger.LogInformation($"Received message from topic: {args.ApplicationMessage.Topic}");
 
             try
             {
@@ -149,7 +186,7 @@ namespace Opc.Ua.Cloud.Dashboard
             }
             catch (Exception ex)
             {
-                Trace.TraceError(ex.Message);
+                _logger.LogError(ex.Message);
 
                 // send error to MQTT broker, if required
                 if (args.ApplicationMessage.ResponseTopic != null)

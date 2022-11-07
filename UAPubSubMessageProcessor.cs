@@ -15,7 +15,7 @@ namespace Opc.Ua.Cloud.Dashboard
     using System.Text;
     using UACloudDashboard.Interfaces;
 
-    public class UAPubSubMessageProcessor : IUAPubSubMessageProcessor
+    public class UAPubSubMessageProcessor : IMessageProcessor
     {
         private StatusHubClient _hubClient;
         private Dictionary<string, DataSetReaderDataType> _dataSetReaders;

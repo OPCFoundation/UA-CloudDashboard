@@ -9,9 +9,9 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
     public class DashboardController : Controller
     {
         private readonly ISubscriber _subscriber;
-        private readonly IUAPubSubMessageProcessor _processor;
+        private readonly IMessageProcessor _processor;
 
-        public DashboardController(ISubscriber subscriber, IUAPubSubMessageProcessor processor)
+        public DashboardController(ISubscriber subscriber, IMessageProcessor processor)
         {
             _subscriber = subscriber;
             _processor = processor;
@@ -113,7 +113,8 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                     }
                 }
 
-                _subscriber.Connect();
+                _subscriber.Stop();
+                _subscriber.Run();
 
                 _processor.Clear();
 
