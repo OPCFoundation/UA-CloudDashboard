@@ -60,6 +60,7 @@ namespace Opc.Ua.Cloud.Dashboard
                 catch (Exception ex)
                 {
                     _logger.LogError(ex.Message);
+                    Stop();
                 }
             }
         }
