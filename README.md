@@ -14,6 +14,7 @@ The following environment variables must be defined:
 * METADATA_TOPIC - (optional) the broker metadata topic to read messages from
 * USE_MQTT - (optional) Read OPC UA PubSub telementry messages from an MQTT borker instead of a Kafka broker
 * USE_TLS - (optional) set to 1 to use Transport Layer Security
+* IGNORE_MISSING_METADATA - (optional) set to 1 to parse messages even if no metadata was sent for the messages
 
 ## Usage
 

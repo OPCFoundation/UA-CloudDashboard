@@ -171,8 +171,6 @@ namespace Opc.Ua.Cloud.Dashboard
         // handles all incoming messages
         private async Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs args)
         {
-            _logger.LogInformation($"Received message from topic: {args.ApplicationMessage.Topic}");
-
             try
             {
                 _uaMessageProcessor.ProcessMessage(args.ApplicationMessage.Payload, DateTime.UtcNow, args.ApplicationMessage.ContentType);
