@@ -111,6 +111,120 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                         Environment.SetEnvironmentVariable("TOPIC", "starterkit/json/data/#");
                         break;
                     }
+
+                    if (key.Contains("2mag"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "2mag/#");
+                        break;
+                    }
+
+                    if (key.Contains("Agilent"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Agilent/#");
+                        break;
+                    }
+
+                    if (key.Contains("Byonoy"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Byonoy/#");
+                        break;
+                    }
+
+                    if (key.Contains("FHI"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "FHI/#");
+                        break;
+                    }
+
+                    if (key.Contains("Gambica"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Gambica/#");
+                        break;
+                    }
+
+                    if (key.Contains("Infoteam"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Infoteam/#");
+                        break;
+                    }
+
+                    if (key.Contains("Integris"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Integris/#");
+                        break;
+                    }
+
+                    if (key.Contains("Julabo"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Julabo/#");
+                        break;
+                    }
+
+                    if (key.Contains("Alresa"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Alresa/#");
+                        break;
+                    }
+
+                    if (key.Contains("Spectaris"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Spectaris/#");
+                        break;
+                    }
+
+                    if (key.Contains("Amensio"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Amensio/#");
+                        break;
+                    }
+
+                    if (key.Contains("Brand"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Brand/#");
+                        break;
+                    }
+
+                    if (key.Contains("Essentim"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Essentim/#");
+                        break;
+                    }
+
+                    if (key.Contains("Labforward"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Labforward/#");
+                        break;
+                    }
+
+                    if (key.Contains("InforsHT"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "InforsHT/#");
+                        break;
+                    }
+
+                    if (key.Contains("Labmas"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Labmas/#");
+                        break;
+                    }
+
+                    if (key.Contains("Lads"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Lads/#");
+                        break;
+                    }
+
+                    if (key.Contains("Jaima"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Jaima/#");
+                        break;
+                    }
+
+                    if (key.Contains("Berthold"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Berthold/#");
+                        break;
+                    }
                 }
 
                 _subscriber.Stop();
