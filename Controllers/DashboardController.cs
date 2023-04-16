@@ -126,7 +126,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("Byonoy"))
                     {
-                        Environment.SetEnvironmentVariable("TOPIC", "Byonoy/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "byonoy/#");
                         break;
                     }
 
@@ -168,7 +168,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("Spectaris"))
                     {
-                        Environment.SetEnvironmentVariable("TOPIC", "Spectaris/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "SPECTARIS/#");
                         break;
                     }
 
@@ -222,7 +222,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("Berthold"))
                     {
-                        Environment.SetEnvironmentVariable("TOPIC", "Berthold/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "berthold/#");
                         break;
                     }
                 }

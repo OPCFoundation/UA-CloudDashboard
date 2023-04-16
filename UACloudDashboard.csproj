@@ -87,7 +87,7 @@
     <Content Update="wwwroot\lads.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Update="wwwroot\Logo+eslogan.jpg">
+    <Content Update="wwwroot\Logoeslogan.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\matrikon.png">
