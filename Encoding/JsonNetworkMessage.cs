@@ -2,7 +2,7 @@
  * Copyright (c) 2005-2021 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +11,7 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
@@ -27,6 +27,7 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
+using Opc.Ua.PubSub.PublishedData;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -41,6 +42,7 @@ namespace Opc.Ua.PubSub.Encoding
         #region Fields
         private const string kDataSetMessageType = "ua-data";
         private const string kMetaDataMessageType = "ua-metadata";
+        private const string kStatusMessageType = "ua-status";
         private const string kFieldMessages = "Messages";
         private const string kFieldMetaData = "MetaData";
         private const string kFieldReplyTo = "ReplyTo";
@@ -259,7 +261,7 @@ namespace Opc.Ua.PubSub.Encoding
         /// <param name="dataSetReaders"></param>
         public override void Decode(IServiceMessageContext context, byte[] message, IList<DataSetReaderDataType> dataSetReaders)
         {
-            string json = System.Text.Encoding.UTF8.GetString(message);  
+            string json = System.Text.Encoding.UTF8.GetString(message);
 
             using (JsonDecoder jsonDecoder = new JsonDecoder(json, context))
             {
@@ -275,10 +277,15 @@ namespace Opc.Ua.PubSub.Encoding
                     //decode bytes using dataset reader information
                     DecodeSubscribedDataSets(jsonDecoder, dataSetReaders);
                 }
+                else if (m_jsonNetworkMessageType == JSONNetworkMessageType.Status)
+                {
+                    //decode bytes using dataset reader information
+                    DecodeStatus(jsonDecoder, dataSetReaders);
+                }
             }
         }
 
-        
+
         #endregion
 
         #region Private Methods - Encoding
@@ -334,7 +341,7 @@ namespace Opc.Ua.PubSub.Encoding
                 jsonEncoder.WriteUInt16(nameof(DataSetWriterId), DataSetWriterId);
             }
         }
-        
+
         /// <summary>
         /// Encode DataSetMessages
         /// </summary>
@@ -380,7 +387,7 @@ namespace Opc.Ua.PubSub.Encoding
 
         #endregion
 
-        #region Private Methods - Decoding 
+        #region Private Methods - Decoding
 
         /// <summary>
         /// Encode Network Message Header
@@ -408,6 +415,10 @@ namespace Opc.Ua.PubSub.Encoding
                 {
                     m_jsonNetworkMessageType = JSONNetworkMessageType.DataSetMetaData;
                 }
+                else if (MessageType == kStatusMessageType)
+                {
+                    m_jsonNetworkMessageType = JSONNetworkMessageType.Status;
+                }
                 else
                 {
                     m_jsonNetworkMessageType = JSONNetworkMessageType.Invalid;
@@ -433,7 +444,7 @@ namespace Opc.Ua.PubSub.Encoding
                 NetworkMessageContentMask |= JsonNetworkMessageContentMask.DataSetClassId;
             }
 
-            if (m_jsonNetworkMessageType == JSONNetworkMessageType.DataSetMetaData) 
+            if (m_jsonNetworkMessageType == JSONNetworkMessageType.DataSetMetaData)
             {
                 // for metadata messages the DataSetWriterId field is mandatory
                 if (jsonDecoder.ReadField(nameof(DataSetWriterId), out token))
@@ -531,7 +542,7 @@ namespace Opc.Ua.PubSub.Encoding
                     messagesList = messagesToken as List<object>;
                     if (messagesList == null)
                     {
-                        // this is a SingleDataSetMessage encoded as the content of Messages 
+                        // this is a SingleDataSetMessage encoded as the content of Messages
                         jsonDecoder.PushStructure(kFieldMessages);
                         messagesList = new List<object>();
                     }
@@ -547,7 +558,7 @@ namespace Opc.Ua.PubSub.Encoding
                 }
                 else
                 {
-                    // this is a SingleDataSetMessage encoded as the content json 
+                    // this is a SingleDataSetMessage encoded as the content json
                     messagesList = new List<object>();
                 }
 
@@ -560,14 +571,14 @@ namespace Opc.Ua.PubSub.Encoding
                            as JsonDataSetReaderMessageDataType;
                         if (jsonMessageSettings == null)
                         {
-                            // The reader MessageSettings is not set up correctly 
+                            // The reader MessageSettings is not set up correctly
                             continue;
                         }
 
                         JsonNetworkMessageContentMask networkMessageContentMask = (JsonNetworkMessageContentMask)jsonMessageSettings.NetworkMessageContentMask;
                         if ((networkMessageContentMask & NetworkMessageContentMask) != NetworkMessageContentMask)
                         {
-                            // The reader MessageSettings.NetworkMessageContentMask is not set up correctly 
+                            // The reader MessageSettings.NetworkMessageContentMask is not set up correctly
                             continue;
                         }
 
@@ -589,6 +600,110 @@ namespace Opc.Ua.PubSub.Encoding
                             OnDataSetDecodeErrorOccurred(new DataSetDecodeErrorEventArgs(DataSetDecodeErrorReason.MetadataMajorVersion, this, dataSetReader));
                         }
                     }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Unexpected exception in DecodeSubscribedDataSets
+                Utils.Trace(ex, "JsonNetworkMessage.DecodeSubscribedDataSets");
+            }
+        }
+
+        /// <summary>
+        /// Decode the stream from decoder parameter and produce a Dataset
+        /// </summary>
+        /// <param name="jsonDecoder"></param>
+        /// <param name="dataSetReaders"></param>
+        /// <returns></returns>
+        private void DecodeStatus(JsonDecoder jsonDecoder, IList<DataSetReaderDataType> dataSetReaders)
+        {
+            if (dataSetReaders == null || dataSetReaders.Count == 0)
+            {
+                return;
+            }
+            try
+            {
+                List<DataSetReaderDataType> dataSetReadersFiltered = new List<DataSetReaderDataType>();
+
+                // 1. decode network message header (PublisherId & DataSetClassId)
+                DecodeNetworkMessageHeader(jsonDecoder);
+
+                // ignore network messages that are not status messages
+                if (m_jsonNetworkMessageType != JSONNetworkMessageType.Status)
+                {
+                    return;
+                }
+
+                // always add the default dataset reader to the end of the filtered list
+                foreach (DataSetReaderDataType dataSetReader in dataSetReaders)
+                {
+                    if (dataSetReader.Name == "default_json:0")
+                    {
+                        dataSetReadersFiltered.Add(dataSetReader);
+                        break;
+                    }
+                }
+
+                // atempt decoding for each filtered data set reader
+                foreach (DataSetReaderDataType dataSetReader in dataSetReadersFiltered)
+                {
+                    JsonDataSetReaderMessageDataType jsonMessageSettings = ExtensionObject.ToEncodeable(dataSetReader.MessageSettings)
+                       as JsonDataSetReaderMessageDataType;
+                    if (jsonMessageSettings == null)
+                    {
+                        // The reader MessageSettings is not set up correctly
+                        continue;
+                    }
+
+                    JsonNetworkMessageContentMask networkMessageContentMask = (JsonNetworkMessageContentMask)jsonMessageSettings.NetworkMessageContentMask;
+                    if ((networkMessageContentMask & NetworkMessageContentMask) != NetworkMessageContentMask)
+                    {
+                        // The reader MessageSettings.NetworkMessageContentMask is not set up correctly
+                        continue;
+                    }
+
+                    List<Field> dataFields = new List<Field>();
+
+                    jsonDecoder.ReadField("IsCyclic", out object cyclic);
+
+                    jsonDecoder.ReadField("Status", out object status);
+                    PubSubState state = (PubSubState)jsonDecoder.ReadEnumerated("Status", typeof(PubSubState));
+                    Field dataField2 = new Field();
+                    dataField2.Value = new DataValue(status.ToString());
+                    dataField2.FieldMetaData = new FieldMetaData();
+                    dataField2.FieldMetaData.Name = "Status";
+                    dataFields.Add(dataField2);
+
+                    if ((bool)cyclic)
+                    {
+                        jsonDecoder.ReadField("NextReportTime", out object nextTime);
+                        Field dataField3 = new Field();
+                        dataField3.Value = new DataValue(nextTime.ToString());
+                        dataField3.FieldMetaData = new FieldMetaData();
+                        dataField3.FieldMetaData.Name = "StatusNextReportTime";
+                        dataFields.Add(dataField3);
+                    }
+
+                    // initialize the dataset message
+                    JsonDataSetMessage jsonDataSetMessage = new JsonDataSetMessage();
+                    jsonDataSetMessage.DataSetMessageContentMask = (JsonDataSetMessageContentMask)jsonMessageSettings.DataSetMessageContentMask;
+                    jsonDataSetMessage.SetFieldContentMask((DataSetFieldContentMask)dataSetReader.DataSetFieldContentMask);
+
+                    // build the DataSet Fields collection based on the decoded values and the target
+                    DataSetMetaDataType dataSetMetaData = dataSetReader.DataSetMetaData;
+
+                    // build the dataset object
+                    DataSet dataSet = new DataSet(dataSetMetaData?.Name);
+                    dataSet.DataSetMetaData = dataSetMetaData;
+                    dataSet.Fields = dataFields.ToArray();
+                    dataSet.DataSetWriterId = DataSetWriterId;
+
+                    jsonDataSetMessage.DataSet = dataSet;
+
+                    // set the flag that indicates if dataset message shall have a header
+                    jsonDataSetMessage.HasDataSetMessageHeader = (networkMessageContentMask & JsonNetworkMessageContentMask.DataSetMessageHeader) != 0;
+
+                    m_uaDataSetMessages.Add(jsonDataSetMessage);
                 }
             }
             catch (Exception ex)

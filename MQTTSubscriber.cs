@@ -173,7 +173,7 @@ namespace Opc.Ua.Cloud.Dashboard
         {
             try
             {
-                _uaMessageProcessor.ProcessMessage(args.ApplicationMessage.Payload, DateTime.UtcNow, args.ApplicationMessage.ContentType);
+                _uaMessageProcessor.ProcessMessage(args.ApplicationMessage.PayloadSegment.Array, DateTime.UtcNow, args.ApplicationMessage.ContentType);
 
                 // send reponse to MQTT broker, if required
                 if (args.ApplicationMessage.ResponseTopic != null)

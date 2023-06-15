@@ -225,9 +225,16 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                         Environment.SetEnvironmentVariable("TOPIC", "berthold/#");
                         break;
                     }
+
                     if (key.Contains("Gefran"))
                     {
                         Environment.SetEnvironmentVariable("TOPIC", "Gefran/#");
+                        break;
+                    }
+
+                    if (key.Contains("Microsoft"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "Microsoft/#");
                         break;
                     }
                 }

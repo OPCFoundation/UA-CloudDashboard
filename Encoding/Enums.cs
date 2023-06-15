@@ -356,5 +356,9 @@ namespace Opc.Ua.PubSub
         /// DataSetMetaData message
         /// </summary>
         DataSetMetaData = 2,
+        /// <summary>
+        /// Status message
+        /// </summary>
+        Status = 3,
     }
 }
