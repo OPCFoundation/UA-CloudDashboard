@@ -1,5 +1,5 @@
 # UA Cloud Dashboard
-A cross-platform OPC UA cloud dashboard reference implementation leveraging Kafka and MQTT. It runs in a Docker container and displays OPC UA PubSub telemetry data, read directly from Kafka or an MQTT broker. It supports both JSON and binary payloads as well as OPC UA Complex Types decoding.
+A cross-platform OPC UA cloud dashboard reference implementation leveraging Kafka and MQTT. It runs in a Docker container and displays OPC UA PubSub telemetry data, read directly from Kafka broker or an MQTT broker. It supports both JSON and binary payloads as well as OPC UA Complex Types decoding.
 
 ## Installation
 
