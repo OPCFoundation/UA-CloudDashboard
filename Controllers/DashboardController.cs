@@ -240,7 +240,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("Schneider"))
                     {
-                        Environment.SetEnvironmentVariable("TOPIC", "Schneider Electric/json/data/2234/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "Schneider-Electric/#");
                         break;
                     }
                 }
