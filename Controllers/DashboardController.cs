@@ -243,6 +243,12 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                         Environment.SetEnvironmentVariable("TOPIC", "Schneider-Electric/#");
                         break;
                     }
+
+                    if (key.Contains("Inray"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "inray/#");
+                        break;
+                    }
                 }
 
                 _subscriber.Stop();
