@@ -249,6 +249,12 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
                         Environment.SetEnvironmentVariable("TOPIC", "inray/#");
                         break;
                     }
+
+                    if (key.Contains("Samson"))
+                    {
+                        Environment.SetEnvironmentVariable("TOPIC", "samson/#");
+                        break;
+                    }
                 }
 
                 _subscriber.Stop();
