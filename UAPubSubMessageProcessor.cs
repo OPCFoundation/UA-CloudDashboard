@@ -186,7 +186,14 @@ namespace Opc.Ua.Cloud.Dashboard
                     if (_dataSetReaders.ContainsKey(publisherID + ":" + dataSetWriterId))
                     {
                         string name = _dataSetReaders[publisherID + ":" + dataSetWriterId].DataSetMetaData.Name;
-                        assetName = name.Substring(0, name.LastIndexOf(';'));
+                        if (name.IndexOf(";") != -1)
+                        {
+                            assetName = name.Substring(0, name.LastIndexOf(';'));
+                        }
+                        else
+                        {
+                            assetName = name;
+                        }
                     }
                     else
                     {
