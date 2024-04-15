@@ -90,7 +90,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("VDW"))
                     {
-                        Environment.SetEnvironmentVariable("TOPIC", "vdw/json/data/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "vdw/#");
                         break;
                     }
 
