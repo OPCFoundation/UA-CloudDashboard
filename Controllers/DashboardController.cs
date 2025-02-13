@@ -108,7 +108,7 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                     if (key.Contains("OPC Foundation"))
                     {
-                        Environment.SetEnvironmentVariable("TOPIC", "starterkit/#");
+                        Environment.SetEnvironmentVariable("TOPIC", "#");
                         break;
                     }
 

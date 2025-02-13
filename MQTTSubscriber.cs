@@ -3,11 +3,11 @@ namespace Opc.Ua.Cloud.Dashboard
 {
     using Microsoft.Extensions.Logging;
     using MQTTnet;
-    using MQTTnet.Adapter;
-    using MQTTnet.Client;
+    using MQTTnet.Exceptions;
     using MQTTnet.Packets;
     using MQTTnet.Protocol;
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
@@ -70,13 +70,13 @@ namespace Opc.Ua.Cloud.Dashboard
                 }
 
                 // create MQTT client
-                _client = new MqttFactory().CreateMqttClient();
+                _client = new MqttClientFactory().CreateMqttClient();
                 _client.ApplicationMessageReceivedAsync += msg => HandleMessageAsync(msg);
                 var clientOptions = new MqttClientOptionsBuilder()
                     .WithTcpServer(opt => opt.NoDelay = true)
                     .WithClientId(Environment.GetEnvironmentVariable("CLIENT_NAME"))
                     .WithTcpServer(Environment.GetEnvironmentVariable("BROKER_NAME"), int.Parse(Environment.GetEnvironmentVariable("BROKER_PORT")))
-                    .WithTls(new MqttClientOptionsBuilderTlsParameters { UseTls = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_TLS")) })
+                    .WithTlsOptions(new MqttClientTlsOptions { UseTls = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_TLS")) })
                     .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V311)
                     .WithTimeout(TimeSpan.FromSeconds(10))
                     .WithKeepAlivePeriod(TimeSpan.FromSeconds(100))
@@ -125,14 +125,14 @@ namespace Opc.Ua.Cloud.Dashboard
 
                     return true;
                 }
-                catch (MqttConnectingFailedException ex)
+                catch (MqttCommunicationException ex)
                 {
-                    _logger.LogError($"Failed to connect with reason {ex.ResultCode} and message: {ex.Message}");
-                    if (ex.Result?.UserProperties != null)
+                    _logger.LogError($"Failed to connect with reason {ex.HResult} and message: {ex.Message}");
+                    if ((ex.Data != null) && (ex.Data.Count > 0))
                     {
-                        foreach (var prop in ex.Result.UserProperties)
+                        foreach (var prop in ex.Data)
                         {
-                            _logger.LogError($"{prop.Name}: {prop.Value}");
+                            _logger.LogError($"{prop.ToString()}");
                         }
                     }
 
@@ -173,7 +173,7 @@ namespace Opc.Ua.Cloud.Dashboard
         {
             try
             {
-                _uaMessageProcessor.ProcessMessage(args.ApplicationMessage.PayloadSegment.Array, DateTime.UtcNow, args.ApplicationMessage.ContentType);
+                _uaMessageProcessor.ProcessMessage(args.ApplicationMessage.Payload.ToArray(), DateTime.UtcNow, args.ApplicationMessage.ContentType);
 
                 // send reponse to MQTT broker, if required
                 if (args.ApplicationMessage.ResponseTopic != null)

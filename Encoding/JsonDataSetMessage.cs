@@ -497,7 +497,13 @@ namespace Opc.Ua.PubSub.Encoding
             for (int i = 0; i < dataValues.Count; i++)
             {
                 Field dataField = new Field();
-                dataField.FieldMetaData = dataSetMetaData?.Fields[(int)dataSetMetaData?.Fields.Count - dataValues.Count + i];
+
+                int metadataIndex = dataSetMetaData.Fields.Count - dataValues.Count + i;
+                if ((dataSetMetaData != null) && (metadataIndex > 0) && (metadataIndex < dataSetMetaData.Fields.Count))
+                {
+                    dataField.FieldMetaData = dataSetMetaData.Fields[metadataIndex];
+                }
+
                 dataField.Value = dataValues[i];
 
                 dataFields.Add(dataField);
@@ -601,7 +607,7 @@ namespace Opc.Ua.PubSub.Encoding
                     // the field value is encoded as a Variant encoded using the reversible OPC UA JSON Data Encoding
                     // defined in OPC 10000-6.
                     encoder.ForceNamespaceUri = false;
-                    encoder.WriteVariant(fieldName, valueToEncode, true);
+                    encoder.WriteVariant(fieldName, valueToEncode);
                     break;
 
                 case FieldTypeEncodingMask.RawData:
@@ -610,7 +616,7 @@ namespace Opc.Ua.PubSub.Encoding
                     // defined in OPC 10000-6
                     encoder.ForceNamespaceUri = true;
 
-                    encoder.WriteVariant(fieldName, valueToEncode, false);
+                    encoder.WriteVariant(fieldName, valueToEncode);
                     break;
 
                 case FieldTypeEncodingMask.DataValue:
@@ -646,7 +652,7 @@ namespace Opc.Ua.PubSub.Encoding
                     // If the DataSetFieldContentMask results in a DataValue representation,
                     // the field value is a DataValue encoded using the non-reversible OPC UA JSON Data Encoding
                     encoder.ForceNamespaceUri = true;
-                    encoder.WriteDataValue(fieldName, dataValue, false);
+                    encoder.WriteDataValue(fieldName, dataValue);
                     break;
             }
         }

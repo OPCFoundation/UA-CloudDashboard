@@ -242,11 +242,17 @@ namespace Opc.Ua.Cloud.Dashboard
                                         // convert to string
                                         DataValue value = new DataValue(new Variant(field.Value.ToString()), field.Value.StatusCode, field.Value.SourceTimestamp);
 
-                                        flattenedPublishedNodes.Add(telemetryName, value);
+                                        if (!flattenedPublishedNodes.ContainsKey(telemetryName))
+                                        {
+                                            flattenedPublishedNodes.Add(telemetryName, value);
+                                        }
                                     }
                                     else
                                     {
-                                        flattenedPublishedNodes.Add(telemetryName, field.Value);
+                                        if (!flattenedPublishedNodes.ContainsKey(telemetryName))
+                                        {
+                                            flattenedPublishedNodes.Add(telemetryName, field.Value);
+                                        }
                                     }
                                 }
                                 catch (Exception ex)

@@ -265,6 +265,8 @@ namespace Opc.Ua.PubSub.Encoding
 
             using (JsonDecoder jsonDecoder = new JsonDecoder(json, context))
             {
+                jsonDecoder.UpdateNamespaceTable = true;
+
                 // 1. decode network message header (PublisherId & DataSetClassId)
                 DecodeNetworkMessageHeader(jsonDecoder);
 
@@ -669,12 +671,12 @@ namespace Opc.Ua.PubSub.Encoding
                     jsonDecoder.ReadField("Status", out object status);
                     PubSubState state = (PubSubState)jsonDecoder.ReadEnumerated("Status", typeof(PubSubState));
                     Field dataField2 = new Field();
-                    dataField2.Value = new DataValue(status.ToString());
+                    dataField2.Value = new DataValue(status?.ToString());
                     dataField2.FieldMetaData = new FieldMetaData();
                     dataField2.FieldMetaData.Name = "Status";
                     dataFields.Add(dataField2);
 
-                    if ((bool)cyclic)
+                    if ((cyclic != null) && (bool)cyclic)
                     {
                         jsonDecoder.ReadField("NextReportTime", out object nextTime);
                         Field dataField3 = new Field();

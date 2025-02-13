@@ -129,7 +129,7 @@
 
                 for (var j = 0; j < myChart.data.datasets.length; j++)
                 {
-                    var value = parseFloat(values[j].replace(',', '.'));
+                    var value = parseFloat(values[j]);
                     myChart.data.datasets[j].data.push(value);
                     if (myChart.data.datasets[j].data.length > 100)
                     {
