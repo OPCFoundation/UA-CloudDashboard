@@ -1,5 +1,5 @@
 # UA Cloud Dashboard
-A cross-platform OPC UA cloud dashboard reference implementation leveraging Kafka and MQTT. It runs in a Docker container and displays OPC UA PubSub telemetry data, read directly from Kafka broker or an MQTT broker. It supports both JSON and binary payloads as well as OPC UA Complex Types decoding.
+A cross-platform OPC UA cloud dashboard reference implementation leveraging Kafka and MQTT. It runs in a Docker container and displays OPC UA PubSub telemetry data, read directly from a Kafka broker or an MQTT broker. It supports both JSON and binary payloads as well as OPC UA Complex Types decoding.
 
 ## Installation
 
@@ -20,7 +20,7 @@ The following environment variables must be defined:
 
 Run it on a Docker-enabled computer via:
 
-`docker run -e anEnvironmentVariableFromAbove="yourSetting" -p 80:80 ghcr.io/barnstee/ua-clouddashboard:main`
+`docker run -e anEnvironmentVariableFromAbove="yourSetting" -p 80:8080 ghcr.io/barnstee/ua-clouddashboard:main`
 
 Then point your web browser to <http://yourIPAddress>
 
