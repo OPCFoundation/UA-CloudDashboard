@@ -165,7 +165,7 @@ namespace Opc.Ua.Cloud.Dashboard
                 return null;
             }
 
-            return int.Parse(status.Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            return int.Parse(status.ReadValueAsString(), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         }
 
         // handles all incoming messages
