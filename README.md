@@ -11,11 +11,14 @@ The following environment variables must be defined:
 * BROKER_USERNAME - the username to use with the broker
 * BROKER_PASSWORD - the password to use with the broker
 * TOPIC - the broker topic to read messages from
-* METADATA_TOPIC - (optional) the broker metadata topic to read messages from
-* USE_MQTT - (optional) Read OPC UA PubSub telementry messages from an MQTT borker instead of a Kafka broker
-* USE_TLS - (optional) set to 1 to use Transport Layer Security
-* IGNORE_CERT_ERRORS - (optional) set to 1 to accept an untrusted broker TLS certificate (for testing only)
-* IGNORE_MISSING_METADATA - (optional) set to 1 to parse messages even if no metadata was sent for the messages
+
+The following environment variables can be optionally defined:
+
+* METADATA_TOPIC - the broker metadata topic to read messages from
+* USE_MQTT - read OPC UA PubSub telementry messages from an MQTT borker instead of a Kafka broker
+* USE_TLS - set to 1 to use Transport Layer Security
+* IGNORE_CERT_ERRORS - set to 1 to accept an untrusted broker TLS certificate (for testing only)
+* IGNORE_MISSING_METADATA - set to 1 to parse messages even if no metadata was sent for the messages
 
 ## Usage
 
