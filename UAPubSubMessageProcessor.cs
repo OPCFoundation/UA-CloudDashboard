@@ -5,19 +5,20 @@ namespace Opc.Ua.Cloud.Dashboard
     using Newtonsoft.Json;
     using Opc.Ua;
     using Opc.Ua.PubSub;
-    using Opc.Ua.PubSub.Encoding;
-    using Opc.Ua.PubSub.PublishedData;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
     using System.Text;
     using UACloudDashboard.Interfaces;
+    using JsonNetworkMessage = PubSub.Encoding.JsonNetworkMessage;
+    using UadpNetworkMessage = PubSub.Encoding.UadpNetworkMessage;
 
     public class UAPubSubMessageProcessor : IMessageProcessor
     {
         private StatusHubClient _hubClient;
         private Dictionary<string, DataSetReaderDataType> _dataSetReaders;
+        private readonly ServiceMessageContext _messageContext = new ServiceMessageContext(telemetry: null);
 
         public UAPubSubMessageProcessor(IHubContext<StatusHub> hubContext)
         {
@@ -63,7 +64,7 @@ namespace Opc.Ua.Cloud.Dashboard
                     }
                     else
                     {
-                        DecodeMessage(payload, receivedTime, new UadpNetworkMessage());
+                        DecodeMessage(payload, receivedTime, new UadpNetworkMessage(new WriterGroupDataType(), new List<Opc.Ua.PubSub.Encoding.UadpDataSetMessage>()));
                     }
                 }
             }
@@ -143,7 +144,7 @@ namespace Opc.Ua.Cloud.Dashboard
 
         private void DecodeMessage(byte[] payload, DateTime receivedTime, UaNetworkMessage encodedMessage)
         {
-            encodedMessage.Decode(ServiceMessageContext.GlobalContext, payload, null);
+            encodedMessage.Decode(_messageContext, payload, null);
             if (encodedMessage.IsMetaDataMessage)
             {
                 // setup dataset reader
@@ -151,17 +152,17 @@ namespace Opc.Ua.Cloud.Dashboard
                 {
                     JsonNetworkMessage jsonMessage = (JsonNetworkMessage)encodedMessage;
 
-                    AddJsonDataSetReader(jsonMessage.PublisherId, jsonMessage.DataSetWriterId, encodedMessage.DataSetMetaData);
+                    AddJsonDataSetReader(jsonMessage.PublisherId, jsonMessage.DataSetWriterId.GetValueOrDefault(), encodedMessage.DataSetMetaData);
                 }
                 else
                 {
                     UadpNetworkMessage uadpMessage = (UadpNetworkMessage)encodedMessage;
-                    AddUadpDataSetReader(uadpMessage.PublisherId.ToString(), uadpMessage.DataSetWriterId, encodedMessage.DataSetMetaData);
+                    AddUadpDataSetReader(uadpMessage.PublisherId.ToString(), uadpMessage.DataSetWriterId.GetValueOrDefault(), encodedMessage.DataSetMetaData);
                 }
             }
             else
             {
-                encodedMessage.Decode(ServiceMessageContext.GlobalContext, payload, _dataSetReaders.Values.ToArray());
+                encodedMessage.Decode(_messageContext, payload, _dataSetReaders.Values.ToArray());
 
                 // reset metadata fields on default dataset readers
                 _dataSetReaders["default_uadp:0"].DataSetMetaData.Fields.Clear();
@@ -213,7 +214,7 @@ namespace Opc.Ua.Cloud.Dashboard
                     {
                         for (int i = 0; i < datasetmessage.DataSet.Fields.Length; i++)
                         {
-                            Field field = datasetmessage.DataSet.Fields[i];
+                            var field = datasetmessage.DataSet.Fields[i];
                             if (field.Value != null)
                             {
                                 // if the timestamp in the field is missing, use the timestamp from the dataset message instead

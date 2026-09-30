@@ -28,7 +28,21 @@
       "launchBrowser": true,
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "publishAllPorts": true,
-      "useSSL": true
+      "useSSL": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "BROKER_NAME": "iop-gateway-germany.opcfoundation.org",
+        "BROKER_PORT": "8883",
+        "CLIENT_NAME": "mstest",
+        "BROKER_USERNAME": "iopuser",
+        "BROKER_PASSWORD": "iop-opc",
+        "TOPIC": "#",
+        "METADATA_TOPIC": "#",
+        "USE_MQTT": "TRUE",
+        "USE_TLS": "TRUE",
+        "IGNORE_MISSING_METADATA": "1",
+        "IGNORE_CERT_ERRORS": "1"
+      }
     }
   }
 }

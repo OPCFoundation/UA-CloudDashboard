@@ -76,7 +76,11 @@ namespace Opc.Ua.Cloud.Dashboard
                     .WithTcpServer(opt => opt.NoDelay = true)
                     .WithClientId(Environment.GetEnvironmentVariable("CLIENT_NAME"))
                     .WithTcpServer(Environment.GetEnvironmentVariable("BROKER_NAME"), int.Parse(Environment.GetEnvironmentVariable("BROKER_PORT")))
-                    .WithTlsOptions(new MqttClientTlsOptions { UseTls = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_TLS")) })
+                    .WithTlsOptions(new MqttClientTlsOptions
+                    {
+                        UseTls = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_TLS")),
+                        CertificateValidationHandler = ValidateBrokerCertificate
+                    })
                     .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V311)
                     .WithTimeout(TimeSpan.FromSeconds(10))
                     .WithKeepAlivePeriod(TimeSpan.FromSeconds(100))
@@ -145,6 +149,25 @@ namespace Opc.Ua.Cloud.Dashboard
 
                 return false;
             }
+        }
+
+        private bool ValidateBrokerCertificate(MqttClientCertificateValidationEventArgs args)
+        {
+            if (args.SslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
+            {
+                return true;
+            }
+
+            string chainStatus = (args.Chain != null) ? string.Join("; ", args.Chain.ChainStatus.Select(s => $"{s.Status}: {s.StatusInformation.Trim()}")) : string.Empty;
+            _logger.LogError($"MQTT broker certificate validation failed ({args.SslPolicyErrors}) for subject '{args.Certificate?.Subject}', issuer '{args.Certificate?.Issuer}'. Chain status: {chainStatus}");
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IGNORE_CERT_ERRORS")))
+            {
+                _logger.LogWarning("IGNORE_CERT_ERRORS is set, accepting untrusted MQTT broker certificate.");
+                return true;
+            }
+
+            return false;
         }
 
         private MqttApplicationMessage BuildResponse(string status, string id, string responseTopic, byte[] payload)
