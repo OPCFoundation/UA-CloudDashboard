@@ -5,6 +5,7 @@ namespace Opc.Ua.Cloud.Dashboard
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Net;
     using System.Text;
     using System.Threading.Tasks;
 
@@ -57,26 +58,32 @@ namespace Opc.Ua.Cloud.Dashboard
         {
             // create HTML table
             StringBuilder sb = new StringBuilder();
-            sb.Append("<table width='1000px' cellpadding='3' cellspacing='3'>");
+            sb.Append("<table class='table table-hover telemetry-table mb-0'>");
 
             // header
-            sb.Append("<tr>");
-            sb.Append("<th><b>Name</b></th>");
-            sb.Append("<th><b>Latest Value</b></th>");
-            sb.Append("<th><b>Time Stamp</b></th>");
-            sb.Append("</tr>");
+            sb.Append("<thead><tr>");
+            sb.Append("<th scope='col'>Name</th>");
+            sb.Append("<th scope='col'>Latest Value</th>");
+            sb.Append("<th scope='col'>Time Stamp</th>");
+            sb.Append("</tr></thead>");
 
             // rows
+            sb.Append("<tbody>");
             foreach (KeyValuePair<string, Tuple<string, string>> item in TableEntries.ToImmutableSortedDictionary())
             {
                 sb.Append("<tr>");
-                sb.Append("<td style='width:400px'>" + item.Key + "</td>");
-                sb.Append("<td style='width:400px'>" + item.Value.Item1 + "</td>");
-                sb.Append("<td style='width:200px'>" + item.Value.Item2 + "</td>");
+                sb.Append("<td class='telemetry-name'>" + WebUtility.HtmlEncode(item.Key) + "</td>");
+                sb.Append("<td class='telemetry-value'>" + WebUtility.HtmlEncode(item.Value.Item1) + "</td>");
+                sb.Append("<td class='telemetry-time'>" + WebUtility.HtmlEncode(item.Value.Item2) + "</td>");
                 sb.Append("</tr>");
             }
 
-            sb.Append("</table>");
+            if (TableEntries.Count == 0)
+            {
+                sb.Append("<tr><td colspan='3' class='table-placeholder'>Waiting for telemetry data...</td></tr>");
+            }
+
+            sb.Append("</tbody></table>");
 
             _hubContext.Clients.All.SendAsync("addTable", sb.ToString()).GetAwaiter().GetResult();
         }

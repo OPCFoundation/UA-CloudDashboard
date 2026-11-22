@@ -1,38 +1,75 @@
-﻿<!DOCTYPE html>
+﻿@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+    var isLive = string.Equals(ViewData["ActivePage"] as string, "Live", StringComparison.OrdinalIgnoreCase);
+    var isPartners = !isLive && string.Equals(currentAction, "Index", StringComparison.OrdinalIgnoreCase);
+    var pageTitle = ViewData["Title"] as string;
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UA Cloud Dashboard</title>
+    <title>@(string.IsNullOrEmpty(pageTitle) ? "UA Cloud Dashboard" : pageTitle + " - UA Cloud Dashboard")</title>
+    <link rel="icon" href="~/favicon.ico" sizes="any" />
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-table/bootstrap-table.css" />
-    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-controller="Dashboard" asp-action="Index"><b>UA Cloud Dashboard</b></a>
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+    <header class="app-bar">
+        <nav class="navbar navbar-expand-md navbar-dark app-bar-toolbar">
+            <div class="container-fluid">
+                <a class="navbar-brand app-bar-brand" asp-area="" asp-controller="Dashboard" asp-action="Index" title="Home">
+                    <img class="app-bar-logo" src="~/opclogo-white.png" alt="OPC Foundation" />
+                    <span class="app-bar-title">UA Cloud Dashboard</span>
+                </a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#appBarNav" aria-controls="appBarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
-                    <a href="https://opcfoundation.org/"><img src="~/OPCUA.png" width="150"/></a>
-                    <a href="https://azure.microsoft.com/en-us/solutions/industry/manufacturing/iot/"><img src="~/microsoft.png" width="150"/></a>
+                <div class="navbar-collapse collapse" id="appBarNav">
+                    <div class="app-bar-nav-wrap">
+                        <ul class="navbar-nav app-bar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link app-bar-nav-link @(isPartners ? "active" : null)" asp-area="" asp-controller="Dashboard" asp-action="Index" aria-current="@(isPartners ? "page" : null)">
+                                    <svg class="app-bar-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z" /></svg>Partners
+                                </a>
+                            </li>
+                            @if (isLive)
+                            {
+                                <li class="nav-item">
+                                    <span class="nav-link app-bar-nav-link active" aria-current="page">
+                                        <svg class="app-bar-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 0h1v15h15v1H0V0zm14.817 3.113a.5.5 0 0 1 .07.704l-4.5 5.5a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61 4.15-5.073a.5.5 0 0 1 .704-.07z" /></svg>Live Telemetry
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                    <div class="app-bar-actions ml-md-auto">
+                        <a class="app-bar-action-link" href="https://opcfoundation.org/" target="_blank" rel="noopener noreferrer">opcfoundation.org</a>
+                    </div>
                 </div>
             </div>
         </nav>
     </header>
     <div class="container">
-        <main role="main" class="pb-3">
+        <main role="main" class="pt-4 pb-4 mb-4">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2023 - OPC Foundation - <a asp-area="" asp-controller="Dashboard" asp-action="Privacy">Privacy</a>
+    <footer class="footer">
+        <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center">
+            <div class="footer-links">
+                <a href="https://opcfoundation.org/imprint/" target="_blank" rel="noopener noreferrer">&copy; @DateTime.UtcNow.Year OPC Foundation</a>
+                <a href="https://opcfoundation.org/about/contact-us/" target="_blank" rel="noopener noreferrer">Contact Us</a>
+                <a href="https://opcfoundation.org/membership/become-a-member/step1" target="_blank" rel="noopener noreferrer">Become a Member</a>
+                <a asp-area="" asp-controller="Dashboard" asp-action="Privacy">Privacy</a>
+                <a href="https://opcfoundation.org/license/services/1.0/" target="_blank" rel="noopener noreferrer">Terms of Use</a>
+            </div>
+            <div class="footer-version">
+                <a href="https://github.com/barnstee/OpcUaWebDashboard" target="_blank" rel="noopener noreferrer">UA Cloud Dashboard on GitHub</a>
+            </div>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

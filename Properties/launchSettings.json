@@ -12,14 +12,16 @@
       "commandName": "IISExpress",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Logging__LogLevel__Microsoft.AspNetCore.Watch.BrowserRefresh": "None"
       }
     },
     "UANodesetWebViewer": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Logging__LogLevel__Microsoft.AspNetCore.Watch.BrowserRefresh": "None"
       },
       "applicationUrl": "https://localhost:5001;http://localhost:5000"
     },
@@ -31,11 +33,12 @@
       "useSSL": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
+        "Logging__LogLevel__Microsoft.AspNetCore.Watch.BrowserRefresh": "None",
         "BROKER_NAME": "iop-gateway-germany.opcfoundation.org",
         "BROKER_PORT": "8883",
         "CLIENT_NAME": "mstest",
         "BROKER_USERNAME": "iopuser",
-        "BROKER_PASSWORD": "iop-opc",
+        "BROKER_PASSWORD": "",
         "TOPIC": "#",
         "METADATA_TOPIC": "#",
         "USE_MQTT": "TRUE",

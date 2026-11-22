@@ -262,6 +262,17 @@ namespace Opc.Ua.Cloud.Dashboard.Controllers
 
                 _processor.Clear();
 
+                foreach (string key in Request.Form.Keys)
+                {
+                    if (!key.StartsWith("__", StringComparison.Ordinal))
+                    {
+                        ViewData["Partner"] = key;
+                        break;
+                    }
+                }
+
+                ViewData["Topic"] = Environment.GetEnvironmentVariable("TOPIC");
+
                 return View("Graph");
             }
             catch (Exception ex)

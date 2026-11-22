@@ -1,86 +1,174 @@
-﻿
-<p>
-    <div class="chart-container" width="600" height="400">
-        <canvas id="myChart"></canvas>
+﻿@{
+    ViewData["Title"] = "Live Telemetry";
+    ViewData["ActivePage"] = "Live";
+    var partner = ViewData["Partner"] as string;
+    var topic = ViewData["Topic"] as string;
+}
+
+<div class="page-header">
+    <div>
+        <div class="page-eyebrow">Live Telemetry</div>
+        <h1>@(string.IsNullOrEmpty(partner) ? "OPC UA PubSub Telemetry" : partner)</h1>
+        <p class="page-subtitle mb-0">Real-time OPC UA PubSub data received from the broker. The chart keeps the latest 100 samples.</p>
     </div>
-</p>
-<p>
-    <div id="table" width="600">Please wait while we collect telemetry data...</div>
-</p>
+    <div class="page-header-meta">
+        @if (!string.IsNullOrEmpty(topic))
+        {
+            <span class="meta-chip" title="Subscribed topic">Topic <code class="meta-chip-value">@topic</code></span>
+        }
+        <span id="connectionStatus" class="status-badge status-connecting"><span class="status-dot"></span><span class="status-text">Connecting</span></span>
+        <a class="btn btn-outline-primary btn-sm" asp-controller="Dashboard" asp-action="Index">&lsaquo; Change partner</a>
+    </div>
+</div>
+
+<div class="row kpi-row">
+    <div class="col-sm-4 mb-3">
+        <div class="kpi-card">
+            <div class="kpi-label">Data points</div>
+            <div id="kpiSeries" class="kpi-value">0</div>
+            <div class="kpi-hint">Published variables discovered</div>
+        </div>
+    </div>
+    <div class="col-sm-4 mb-3">
+        <div class="kpi-card">
+            <div class="kpi-label">Updates received</div>
+            <div id="kpiUpdates" class="kpi-value">0</div>
+            <div class="kpi-hint">Since this page was opened</div>
+        </div>
+    </div>
+    <div class="col-sm-4 mb-3">
+        <div class="kpi-card">
+            <div class="kpi-label">Last update</div>
+            <div id="kpiLastUpdate" class="kpi-value kpi-value-sm">&mdash;</div>
+            <div class="kpi-hint">Publisher timestamp</div>
+        </div>
+    </div>
+</div>
+
+<div class="dash-card mb-4">
+    <div class="dash-card-header">
+        <h2 class="dash-card-title">Telemetry Trend</h2>
+        <span class="dash-card-subtitle">OPC UA PubSub telemetry data</span>
+    </div>
+    <div class="dash-card-body">
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="dash-card">
+    <div class="dash-card-header">
+        <h2 class="dash-card-title">Latest Values</h2>
+        <span class="dash-card-subtitle">Refreshed every few seconds</span>
+    </div>
+    <div class="dash-card-body p-0">
+        <div id="table" class="table-responsive">
+            <div class="table-placeholder">
+                <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                Please wait while we collect telemetry data...
+            </div>
+        </div>
+    </div>
+</div>
 
 @section scripts {
     <script src="~/lib/Chart.js/chart.js"></script>
     <script>
 
-        const config = {
-            type: 'line',
-            options: {
-                spanGaps: true,
-                responsive: true,
-                plugins: {
-                    legend: {
-                    position: 'top',
-                    },
-                    title: {
-                    display: true,
-                    text: 'OPC UA PubSub over MQTT Telemetry Data'
-                    }
-            },
-            scales: {
-                    xAxis: [{
-                    type: 'timeseries'
-                }],
-                yAxis: [{
-                    ticks:
-                    {
-                        beginAtZero: true
-                    }
-                }]
-            }
-            }
-        };
-
-        const CHART_COLORS = {
-            red: 'rgb(255, 0, 0)',
-            magenta: 'rgb(255, 0, 255)',
-            yellow: 'rgb(255, 255, 0)',
-            green: 'rgb(0, 128, 0)',
-            blue: 'rgb(0, 0, 255)',
-            cyan: 'rgb(0, 255, 255)',
-            grey: 'rgb(128, 128, 128)',
-            black: 'rgb(0, 0, 0)',
-            silver: 'rgb(192, 192, 192)',
-            lime: 'rgb(0, 255, 0)',
-            maroon: 'rgb(128, 0, 0)',
-            olive: 'rgb(128, 128, 0)',
-            purple: 'rbg(128, 0, 128)',
-            teal: 'rgb(0, 128, 128)',
-            navy: 'rgb(0, 0, 128)'
-        };
-
         const NAMED_COLORS = [
-            CHART_COLORS.red,
-            CHART_COLORS.magenta,
-            CHART_COLORS.yellow,
-            CHART_COLORS.green,
-            CHART_COLORS.blue,
-            CHART_COLORS.cyan,
-            CHART_COLORS.grey,
-            CHART_COLORS.black,
-            CHART_COLORS.silver,
-            CHART_COLORS.lime,
-            CHART_COLORS.maroon,
-            CHART_COLORS.olive,
-            CHART_COLORS.purple,
-            CHART_COLORS.teal,
-            CHART_COLORS.navy
+            '#196096', // OPC blue
+            '#E8833A',
+            '#2CA58D',
+            '#448FD1',
+            '#C0392B',
+            '#8E44AD',
+            '#D4A017',
+            '#16A085',
+            '#5D6D7E',
+            '#D35400',
+            '#2C3E50',
+            '#27AE60',
+            '#E84393',
+            '#6C5CE7',
+            '#7F8C8D'
         ];
 
         function namedColor(index) {
             return NAMED_COLORS[index % NAMED_COLORS.length];
         }
 
+        function withAlpha(hex, alpha) {
+            const value = parseInt(hex.slice(1), 16);
+            return 'rgba(' + ((value >> 16) & 255) + ', ' + ((value >> 8) & 255) + ', ' + (value & 255) + ', ' + alpha + ')';
+        }
+
+        Chart.defaults.font.family = "Inter, system-ui, Avenir, Helvetica, Arial, sans-serif";
+        Chart.defaults.color = '#5a6b7b';
+
+        const config = {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: []
+            },
+            options: {
+                spanGaps: true,
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 300 },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                elements: {
+                    point: { radius: 0, hoverRadius: 4 },
+                    line: { borderWidth: 2 }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, boxWidth: 8, padding: 16 }
+                    },
+                    title: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(25, 96, 150, 0.95)',
+                        padding: 10,
+                        cornerRadius: 6
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 8,
+                            callback: function (value) {
+                                // labels are full date/time strings; show the time part only
+                                const label = String(this.getLabelForValue(value));
+                                const space = label.indexOf(' ');
+                                return space > 0 ? label.substring(space + 1) : label;
+                            }
+                        }
+                    },
+                    y: {
+                        grid: { color: '#edf1f5', drawBorder: false }
+                    }
+                }
+            }
+        };
+
         var myChart = new Chart(document.getElementById('myChart'), config);
+        var updateCount = 0;
+
+        function setConnectionStatus(state, text) {
+            const badge = document.getElementById('connectionStatus');
+            badge.className = 'status-badge status-' + state;
+            badge.querySelector('.status-text').textContent = text;
+        }
 
         $(async function () {
             //connection to SignalR hub
@@ -107,12 +195,16 @@
                     const dsColor = namedColor(myChart.data.datasets.length);
                     const newDataset = {
                         label: name,
+                        data: [],
                         borderColor: dsColor,
+                        backgroundColor: withAlpha(dsColor, 0.12),
+                        pointBackgroundColor: dsColor,
                         cubicInterpolationMode: 'monotone',
-                        tension: 0.5,
-                        borderwidth: 3
+                        tension: 0.4,
+                        borderWidth: 2
                     };
                     myChart.data.datasets.push(newDataset);
+                    $('#kpiSeries').text(myChart.data.datasets.length);
 
                     myChart.update();
                 }
@@ -137,6 +229,10 @@
                     }
                 }
 
+                updateCount++;
+                $('#kpiUpdates').text(updateCount.toLocaleString());
+                $('#kpiLastUpdate').text(timestamp);
+
                 myChart.update();
             });
 
@@ -150,14 +246,19 @@
             async function establishSignalRConnection() {
                 try {
                     await connection.start();
+                    setConnectionStatus('live', 'Live');
                     console.log("Connection to SignalR Status Hub successfull established.");
                 } catch (err) {
+                    setConnectionStatus('error', 'Reconnecting');
                     console.warn("Error creating SignalR connection, retry in 5 seconds %o", err);
                     setTimeout(async () => { await establishSignalRConnection(); }, 5000);
                 }
             };
 
-            connection.onclose(async () => { await establishSignalRConnection(); });
+            connection.onclose(async () => {
+                setConnectionStatus('error', 'Reconnecting');
+                await establishSignalRConnection();
+            });
 
             // start the connection
             await establishSignalRConnection();
